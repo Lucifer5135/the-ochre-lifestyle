@@ -1,0 +1,6 @@
+{
+  "name": "The Ochre Lifestyle",
+  "description": "Minimalistic luxury furniture store crafted for living, featuring Pottery Barn style room planners, custom fabric swatches, and competitive INR pricing.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
