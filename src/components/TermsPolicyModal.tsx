@@ -19,8 +19,16 @@ export const TermsPolicyModal: React.FC<TermsPolicyModalProps> = ({
   );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-xs overflow-y-auto animate-in fade-in duration-200">
-      <div className="relative w-full max-w-4xl bg-white rounded-2xl border border-[#E6DDD0] shadow-2xl overflow-hidden my-8 p-6 sm:p-8 space-y-6 max-h-[85vh] flex flex-col">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-xs overscroll-contain overflow-y-auto animate-in fade-in duration-200"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div
+        className="relative w-full max-w-4xl bg-white rounded-2xl border border-[#E6DDD0] shadow-2xl overflow-hidden my-auto p-6 sm:p-8 space-y-6 max-h-[88vh] flex flex-col overscroll-contain"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Close Button */}
         <button
           onClick={onClose}

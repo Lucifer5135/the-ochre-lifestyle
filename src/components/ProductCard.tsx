@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Heart, Layers, Eye, Star, ShoppingBag, Check } from 'lucide-react';
 import { Product, Swatch } from '../types';
+import { ProductVisualizer } from './ProductVisualizer';
 
 interface ProductCardProps {
   product: Product;
@@ -28,19 +29,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     product.availableFabrics[0]
   );
   const [addedAnimation, setAddedAnimation] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
 
-  // Compute active image based on swatch selection
-  const getDisplayImage = () => {
-    if (selectedFabric && product.swatchImageMap?.[selectedFabric.id]) {
-      return product.swatchImageMap[selectedFabric.id];
-    }
-    if (selectedWood && product.swatchImageMap?.[selectedWood.id]) {
-      return product.swatchImageMap[selectedWood.id];
-    }
-    return product.image;
-  };
-
-  const activeImage = getDisplayImage();
+  const activeImage = isHovered && product.hoverImage ? product.hoverImage : product.image;
 
   const formatINR = (amount: number) => {
     return new Intl.NumberFormat('en-IN', {
@@ -60,6 +51,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   return (
     <div
       onClick={() => onQuickView(product)}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
       className="group relative bg-white border border-[#E6DDD0] rounded-xl overflow-hidden hover:shadow-xl transition-all duration-300 flex flex-col cursor-pointer"
     >
       {/* Badges */}
@@ -109,17 +102,20 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         </button>
       </div>
 
-      {/* Image Container with Hover Shift */}
+      {/* Image Container with Customizer Live Finish Visualizer */}
       <div className="relative aspect-[4/3] bg-[#FAF6F0] overflow-hidden">
-        <img
-          src={activeImage}
-          alt={product.name}
-          referrerPolicy="no-referrer"
-          className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700 ease-out"
+        <ProductVisualizer
+          product={product}
+          currentImage={activeImage}
+          selectedWood={selectedWood}
+          selectedFabric={selectedFabric}
+          className="w-full h-full"
+          showCustomBadge={false}
+          interactiveToggle={false}
         />
 
         {/* Quick View Hover Button */}
-        <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+        <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center z-20">
           <button
             onClick={(e) => {
               e.stopPropagation();

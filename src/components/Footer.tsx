@@ -12,6 +12,7 @@ export const Footer: React.FC<{
   onOpenContact?: () => void;
   onOpenPrivacy?: () => void;
   onOpenTermsOfService?: () => void;
+  onOpenAdmin?: () => void;
 }> = ({
   onOpenStylist,
   onOpenSwatchKit,
@@ -22,6 +23,7 @@ export const Footer: React.FC<{
   onOpenContact,
   onOpenPrivacy,
   onOpenTermsOfService,
+  onOpenAdmin,
 }) => {
   const [email, setEmail] = useState('');
   const [subscribed, setSubscribed] = useState(false);
@@ -246,6 +248,17 @@ export const Footer: React.FC<{
             <button onClick={onOpenTermsOfService || onOpenTerms} className="hover:text-white cursor-pointer">
               Terms of Service
             </button>
+            {/* Atelier OS & Analytics Portal Trigger */}
+            {onOpenAdmin && (
+              <button 
+                onClick={onOpenAdmin} 
+                className="text-[11px] text-[#9E8E87] hover:text-[#C17D3C] transition-colors flex items-center gap-1 cursor-pointer bg-[#2B2220] hover:bg-[#3A2E2B] px-2.5 py-1 rounded-md border border-[#3A2E2B]"
+                title="Open Atelier OS Admin & Analytics (Passkey: 8921)"
+                aria-label="Atelier Desktop App & Analytics"
+              >
+                <span>⚙️ Atelier OS / Analytics</span>
+              </button>
+            )}
           </div>
         </div>
       </div>

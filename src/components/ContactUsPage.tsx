@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Phone, Mail, MapPin, Clock, Send, MessageSquare, ShieldCheck, CheckCircle2 } from 'lucide-react';
+import { Phone, Mail, MapPin, Clock, Send, MessageSquare, ShieldCheck, CheckCircle2, AlertCircle } from 'lucide-react';
+import { sanitizeText, sanitizeEmail, sanitizePhone, isValidEmail, rateLimiter } from '../lib/security';
 
 export const ContactUsPage: React.FC<{
   onOpenStylistModal?: () => void;
@@ -13,13 +14,49 @@ export const ContactUsPage: React.FC<{
     message: '',
   });
 
+  const [formError, setFormError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (formData.name && formData.email && formData.message) {
-      setSubmitted(true);
+    setFormError(null);
+
+    // Rate limiting check
+    const rateCheck = rateLimiter.isAllowed('contact-inquiry', 3, 60000);
+    if (!rateCheck.allowed) {
+      setFormError(`Too many inquiries submitted. Please wait ${rateCheck.waitSeconds} seconds before submitting again.`);
+      return;
     }
+
+    const cleanName = sanitizeText(formData.name, 80);
+    const cleanEmail = sanitizeEmail(formData.email, 100);
+    const cleanPhone = sanitizePhone(formData.phone, 20);
+    const cleanMessage = sanitizeText(formData.message, 1000);
+
+    if (!cleanName || cleanName.length < 2) {
+      setFormError('Please enter a valid full name (minimum 2 characters).');
+      return;
+    }
+
+    if (!isValidEmail(cleanEmail)) {
+      setFormError('Please enter a valid email address.');
+      return;
+    }
+
+    if (!cleanMessage || cleanMessage.length < 10) {
+      setFormError('Please enter a detailed message (minimum 10 characters).');
+      return;
+    }
+
+    setFormData({
+      name: cleanName,
+      email: cleanEmail,
+      phone: cleanPhone,
+      inquiryType: formData.inquiryType,
+      message: cleanMessage,
+    });
+
+    setSubmitted(true);
   };
 
   return (
@@ -132,6 +169,13 @@ export const ContactUsPage: React.FC<{
               </p>
             </div>
 
+            {formError && (
+              <div className="p-3.5 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl text-xs flex items-center gap-2">
+                <AlertCircle size={16} className="shrink-0 text-rose-600" />
+                <span>{formError}</span>
+              </div>
+            )}
+
             {submitted ? (
               <div className="p-8 bg-[#FAF6F0] rounded-2xl border border-[#E6DDD0] text-center space-y-4 animate-in zoom-in-95 duration-200">
                 <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto">
@@ -155,25 +199,33 @@ export const ContactUsPage: React.FC<{
               <form onSubmit={handleSubmit} className="space-y-4 text-xs">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <label className="font-bold text-[#2B2220]">Full Name *</label>
+                    <div className="flex justify-between items-center">
+                      <label className="font-bold text-[#2B2220]">Full Name *</label>
+                      <span className="text-[10px] text-[#9E8E87]">{formData.name.length}/80</span>
+                    </div>
                     <input
                       type="text"
                       required
+                      maxLength={80}
                       placeholder="e.g. Ananya Sharma"
                       value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      onChange={(e) => setFormData({ ...formData, name: sanitizeText(e.target.value, 80) })}
                       className="w-full p-3 rounded-xl border border-[#E6DDD0] bg-[#FAF6F0] text-[#2B2220] focus:outline-none focus:border-[#C17D3C]"
                     />
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="font-bold text-[#2B2220]">Email Address *</label>
+                    <div className="flex justify-between items-center">
+                      <label className="font-bold text-[#2B2220]">Email Address *</label>
+                      <span className="text-[10px] text-[#9E8E87]">{formData.email.length}/100</span>
+                    </div>
                     <input
                       type="email"
                       required
+                      maxLength={100}
                       placeholder="e.g. ananya@example.com"
                       value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      onChange={(e) => setFormData({ ...formData, email: sanitizeEmail(e.target.value, 100) })}
                       className="w-full p-3 rounded-xl border border-[#E6DDD0] bg-[#FAF6F0] text-[#2B2220] focus:outline-none focus:border-[#C17D3C]"
                     />
                   </div>
@@ -181,12 +233,16 @@ export const ContactUsPage: React.FC<{
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <label className="font-bold text-[#2B2220]">Phone Number</label>
+                    <div className="flex justify-between items-center">
+                      <label className="font-bold text-[#2B2220]">Phone Number</label>
+                      <span className="text-[10px] text-[#9E8E87]">{formData.phone.length}/20</span>
+                    </div>
                     <input
                       type="tel"
+                      maxLength={20}
                       placeholder="e.g. +91 98765 43210"
                       value={formData.phone}
-                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                      onChange={(e) => setFormData({ ...formData, phone: sanitizePhone(e.target.value, 20) })}
                       className="w-full p-3 rounded-xl border border-[#E6DDD0] bg-[#FAF6F0] text-[#2B2220] focus:outline-none focus:border-[#C17D3C]"
                     />
                   </div>
@@ -195,7 +251,7 @@ export const ContactUsPage: React.FC<{
                     <label className="font-bold text-[#2B2220]">Inquiry Subject</label>
                     <select
                       value={formData.inquiryType}
-                      onChange={(e) => setFormData({ ...formData, inquiryType: e.target.value })}
+                      onChange={(e) => setFormData({ ...formData, inquiryType: sanitizeText(e.target.value, 50) })}
                       className="w-full p-3 rounded-xl border border-[#E6DDD0] bg-[#FAF6F0] text-[#2B2220] focus:outline-none focus:border-[#C17D3C]"
                     >
                       <option>General Inquiry</option>
@@ -209,13 +265,17 @@ export const ContactUsPage: React.FC<{
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="font-bold text-[#2B2220]">Your Message *</label>
+                  <div className="flex justify-between items-center">
+                    <label className="font-bold text-[#2B2220]">Your Message *</label>
+                    <span className="text-[10px] text-[#9E8E87]">{formData.message.length}/1000</span>
+                  </div>
                   <textarea
                     required
                     rows={5}
+                    maxLength={1000}
                     placeholder="Tell us about your room space requirements, dimensions, or questions..."
                     value={formData.message}
-                    onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                    onChange={(e) => setFormData({ ...formData, message: sanitizeText(e.target.value, 1000) })}
                     className="w-full p-3 rounded-xl border border-[#E6DDD0] bg-[#FAF6F0] text-[#2B2220] focus:outline-none focus:border-[#C17D3C]"
                   />
                 </div>

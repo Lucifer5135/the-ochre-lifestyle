@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
 import { ProductCard } from './components/ProductCard';
@@ -19,18 +19,75 @@ import { ContactUsPage } from './components/ContactUsPage';
 import { OurStoryPage } from './components/OurStoryPage';
 import { PrivacyPolicyPage } from './components/PrivacyPolicyPage';
 import { TermsOfServicePage } from './components/TermsOfServicePage';
+import { LocalAtelierAdmin } from './components/LocalAtelierAdmin';
 
 import { CategoryId, Product, CartItem, Swatch, FilterState } from './types';
 import { PRODUCTS } from './data/products';
+import { safeStorage, clampNumber } from './lib/security';
+import { atelierStore } from './lib/store';
 
 import heroImg from './assets/images/hero_living_room_1784804151279.jpg';
 import { Sparkles, SlidersHorizontal, ArrowRight, ShieldCheck, Truck, Clock } from 'lucide-react';
 
 export default function App() {
-  // Navigation tab state
+  // Navigation tab state (supports deep link #admin or ?admin=true or ?tab=...)
   const [activeTab, setActiveTab] = useState<
-    'shop' | 'room-planner' | 'lookbook' | 'swatch-kit' | 'custom-furniture' | 'contact' | 'our-story' | 'privacy' | 'terms'
-  >('shop');
+    'shop' | 'room-planner' | 'lookbook' | 'swatch-kit' | 'custom-furniture' | 'contact' | 'our-story' | 'privacy' | 'terms' | 'admin'
+  >(() => {
+    try {
+      const searchParams = new URLSearchParams(window.location.search);
+      if (searchParams.get('admin') === 'true' || searchParams.get('tab') === 'admin' || window.location.hash.toLowerCase().includes('admin')) {
+        return 'admin';
+      }
+      const hash = window.location.hash.replace('#', '').toLowerCase();
+      if (['room-planner', 'lookbook', 'swatch-kit', 'custom-furniture', 'contact', 'our-story', 'privacy', 'terms'].includes(hash)) {
+        return hash as any;
+      }
+    } catch {
+      // Fallback to default
+    }
+    return 'shop';
+  });
+
+  // Listen to browser URL hash changes and global keyboard shortcuts
+  useEffect(() => {
+    const handleUrlChange = () => {
+      try {
+        const searchParams = new URLSearchParams(window.location.search);
+        if (searchParams.get('admin') === 'true' || searchParams.get('tab') === 'admin' || window.location.hash.toLowerCase().includes('admin')) {
+          setActiveTab('admin');
+        }
+      } catch {
+        // noop
+      }
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl+Shift+A or Cmd+Shift+A or Alt+A opens Admin / Analytics
+      if ((e.ctrlKey || e.metaKey || e.altKey) && (e.key === 'a' || e.key === 'A') && e.shiftKey) {
+        e.preventDefault();
+        setActiveTab((prev) => (prev === 'admin' ? 'shop' : 'admin'));
+      }
+    };
+
+    window.addEventListener('popstate', handleUrlChange);
+    window.addEventListener('hashchange', handleUrlChange);
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      window.removeEventListener('popstate', handleUrlChange);
+      window.removeEventListener('hashchange', handleUrlChange);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
+
+  // Dynamic Product Catalog State
+  const [catalogProducts, setCatalogProducts] = useState<Product[]>(() => atelierStore.getProducts());
+
+  // Function to refresh global products from local store
+  const refreshGlobalState = () => {
+    setCatalogProducts(atelierStore.getProducts());
+  };
   
   // Filter state
   const [filter, setFilter] = useState<FilterState>({
@@ -53,18 +110,70 @@ export default function App() {
   const [isTrackOrderOpen, setIsTrackOrderOpen] = useState(false);
   const [isTermsOpen, setIsTermsOpen] = useState(false);
 
-  // Cart, Wishlist, Compare states
-  const [cart, setCart] = useState<CartItem[]>([
-    {
-      product: PRODUCTS[0],
-      selectedWoodFinish: PRODUCTS[0].availableWoodFinishes[0],
-      selectedFabric: PRODUCTS[0].availableFabrics[0],
-      quantity: 1,
-      includeWhiteGlove: true,
+  // Scroll to top on active tab or category change
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }, [activeTab]);
+
+  // Lock body scroll when any modal or drawer is active to prevent dual-scroll glitches
+  const isAnyModalOpen =
+    !!quickViewProduct ||
+    isCartOpen ||
+    isWishlistOpen ||
+    isCompareOpen ||
+    isSearchOpen ||
+    isStylistOpen ||
+    isTrackOrderOpen ||
+    isTermsOpen;
+
+  useEffect(() => {
+    if (isAnyModalOpen) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    } else {
+      document.body.style.overflow = '';
     }
-  ]);
-  const [wishlist, setWishlist] = useState<Product[]>([PRODUCTS[1]]);
-  const [compareList, setCompareList] = useState<Product[]>([PRODUCTS[0], PRODUCTS[1]]);
+  }, [isAnyModalOpen]);
+
+  // Cart, Wishlist, Compare states with safe local persistence
+  const [cart, setCart] = useState<CartItem[]>(() => {
+    const saved = safeStorage.getItem<CartItem[]>('ochre_cart', [
+      {
+        product: PRODUCTS[0],
+        selectedWoodFinish: PRODUCTS[0].availableWoodFinishes[0],
+        selectedFabric: PRODUCTS[0].availableFabrics[0],
+        quantity: 1,
+        includeWhiteGlove: true,
+      },
+    ]);
+    return Array.isArray(saved) ? saved : [];
+  });
+
+  const [wishlist, setWishlist] = useState<Product[]>(() => {
+    const saved = safeStorage.getItem<Product[]>('ochre_wishlist', [PRODUCTS[1]]);
+    return Array.isArray(saved) ? saved : [];
+  });
+
+  const [compareList, setCompareList] = useState<Product[]>(() => {
+    const saved = safeStorage.getItem<Product[]>('ochre_compare', [PRODUCTS[0], PRODUCTS[1]]);
+    return Array.isArray(saved) ? saved : [];
+  });
+
+  // Sync state changes safely
+  useEffect(() => {
+    safeStorage.setItem('ochre_cart', cart);
+  }, [cart]);
+
+  useEffect(() => {
+    safeStorage.setItem('ochre_wishlist', wishlist);
+  }, [wishlist]);
+
+  useEffect(() => {
+    safeStorage.setItem('ochre_compare', compareList);
+  }, [compareList]);
 
   // Cart actions
   const handleAddToCart = (
@@ -82,7 +191,7 @@ export default function App() {
 
     if (existingIndex > -1) {
       const updated = [...cart];
-      updated[existingIndex].quantity += 1;
+      updated[existingIndex].quantity = clampNumber(updated[existingIndex].quantity + 1, 1, 20, 1);
       setCart(updated);
     } else {
       setCart([
@@ -120,9 +229,11 @@ export default function App() {
 
   const handleUpdateQuantity = (index: number, delta: number) => {
     const updated = [...cart];
-    updated[index].quantity += delta;
-    if (updated[index].quantity <= 0) {
+    const newQty = clampNumber(updated[index].quantity + delta, 0, 20, 1);
+    if (newQty <= 0) {
       updated.splice(index, 1);
+    } else {
+      updated[index].quantity = newQty;
     }
     setCart(updated);
   };
@@ -154,7 +265,7 @@ export default function App() {
   };
 
   // Filter products catalog
-  const filteredProducts = PRODUCTS.filter((p) => {
+  const filteredProducts = catalogProducts.filter((p) => {
     if (filter.category !== 'all' && p.category !== filter.category) return false;
     if (p.priceINR < filter.priceRange[0] || p.priceINR > filter.priceRange[1]) return false;
     if (filter.inStockOnly && !p.inStock) return false;
@@ -192,10 +303,19 @@ export default function App() {
         onOpenStylistModal={() => setIsStylistOpen(true)}
         onOpenTrackOrder={() => setIsTrackOrderOpen(true)}
         onOpenTerms={() => setIsTermsOpen(true)}
+        onOpenAdmin={() => setActiveTab('admin')}
       />
 
       {/* Main Content Area */}
       <main className="flex-1">
+        {/* Local-Only Atelier Admin Workspace */}
+        {activeTab === 'admin' && (
+          <LocalAtelierAdmin
+            onCloseAdmin={() => setActiveTab('shop')}
+            onNavigateToStorefront={() => setActiveTab('shop')}
+            onRefreshGlobalState={refreshGlobalState}
+          />
+        )}
         {/* Main Hero Banner (Shown when tab is 'shop') */}
         {activeTab === 'shop' && (
           <section className="relative bg-[#2B2220] text-[#FAF6F0] overflow-hidden">
@@ -433,6 +553,7 @@ export default function App() {
         onOpenContact={() => setActiveTab('contact')}
         onOpenPrivacy={() => setActiveTab('privacy')}
         onOpenTermsOfService={() => setActiveTab('terms')}
+        onOpenAdmin={() => setActiveTab('admin')}
       />
 
       {/* Modals & Slide-over Drawers */}

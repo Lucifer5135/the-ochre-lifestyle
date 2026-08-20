@@ -28,8 +28,16 @@ export const CompareModal: React.FC<CompareModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-xs overflow-y-auto animate-in fade-in duration-200">
-      <div className="relative w-full max-w-5xl bg-white rounded-2xl border border-[#E6DDD0] shadow-2xl overflow-hidden my-8 p-6 sm:p-8 space-y-6">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-xs overscroll-contain overflow-y-auto animate-in fade-in duration-200"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div
+        className="relative w-full max-w-5xl bg-white rounded-2xl border border-[#E6DDD0] shadow-2xl overflow-y-auto max-h-[90vh] my-auto p-6 sm:p-8 space-y-6 overscroll-contain"
+        onClick={(e) => e.stopPropagation()}
+      >
         <button
           onClick={onClose}
           className="absolute top-4 right-4 p-2 bg-[#FAF6F0] hover:bg-[#2B2220] hover:text-white rounded-full transition-colors text-[#2B2220] cursor-pointer"

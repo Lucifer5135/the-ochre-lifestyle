@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { Sparkles, Check, Package, MapPin, Truck, ArrowRight } from 'lucide-react';
+import { Sparkles, Check, Package, MapPin, Truck, ArrowRight, AlertCircle } from 'lucide-react';
 import { ALL_SWATCHES } from '../data/swatches';
 import { Swatch } from '../types';
+import { sanitizeText, sanitizePhone, sanitizePincode, isValidPincode, rateLimiter } from '../lib/security';
+import { atelierStore } from '../lib/store';
 
 export const SwatchKitBuilder: React.FC = () => {
   const [selectedSwatches, setSelectedSwatches] = useState<Swatch[]>([
@@ -12,13 +14,12 @@ export const SwatchKitBuilder: React.FC = () => {
 
   const [shippingDetails, setShippingDetails] = useState({
     name: '',
-    email: '',
     phone: '',
     address: '',
     pincode: '',
-    city: 'Mumbai',
   });
 
+  const [formError, setFormError] = useState<string | null>(null);
   const [orderedSuccess, setOrderedSuccess] = useState(false);
 
   const toggleSwatch = (swatch: Swatch) => {
@@ -33,9 +34,64 @@ export const SwatchKitBuilder: React.FC = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (selectedSwatches.length > 0) {
-      setOrderedSuccess(true);
+    setFormError(null);
+
+    const rateCheck = rateLimiter.isAllowed('swatch-order', 3, 60000);
+    if (!rateCheck.allowed) {
+      setFormError(`Too many requests. Please wait ${rateCheck.waitSeconds} seconds before trying again.`);
+      return;
     }
+
+    if (selectedSwatches.length === 0) {
+      setFormError('Please select at least 1 swatch sample (up to 5).');
+      return;
+    }
+
+    const cleanName = sanitizeText(shippingDetails.name, 80);
+    const cleanPhone = sanitizePhone(shippingDetails.phone, 20);
+    const cleanPincode = sanitizePincode(shippingDetails.pincode);
+    const cleanAddress = sanitizeText(shippingDetails.address, 300);
+
+    if (!cleanName || cleanName.length < 2) {
+      setFormError('Please enter a valid full name.');
+      return;
+    }
+
+    if (!cleanPhone || cleanPhone.length < 8) {
+      setFormError('Please enter a valid contact phone number.');
+      return;
+    }
+
+    if (!isValidPincode(cleanPincode)) {
+      setFormError('Please enter a valid 6-digit Indian PIN code (e.g. 400001).');
+      return;
+    }
+
+    if (!cleanAddress || cleanAddress.length < 5) {
+      setFormError('Please enter complete street delivery address.');
+      return;
+    }
+
+    setShippingDetails({
+      name: cleanName,
+      phone: cleanPhone,
+      pincode: cleanPincode,
+      address: cleanAddress,
+    });
+
+    const swatchRecord = {
+      orderId: `OCHRE-SWATCH-${Math.floor(100 + Math.random() * 900)}`,
+      customerName: cleanName,
+      phone: cleanPhone,
+      pincode: cleanPincode,
+      address: cleanAddress,
+      swatches: selectedSwatches,
+      status: 'Pending Dispatch' as const,
+      requestedAt: new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
+    };
+
+    atelierStore.addSwatchOrder(swatchRecord);
+    setOrderedSuccess(true);
   };
 
   return (
@@ -144,15 +200,26 @@ export const SwatchKitBuilder: React.FC = () => {
                 <span>Delivery Address (India)</span>
               </div>
 
+              {formError && (
+                <div className="p-3 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl text-xs flex items-center gap-2">
+                  <AlertCircle size={16} className="shrink-0 text-rose-600" />
+                  <span>{formError}</span>
+                </div>
+              )}
+
               <div>
-                <label className="block text-[11px] font-semibold text-[#2B2220] mb-1">
-                  Full Name
-                </label>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="text-[11px] font-semibold text-[#2B2220]">
+                    Full Name *
+                  </label>
+                  <span className="text-[10px] text-[#9E8E87]">{shippingDetails.name.length}/80</span>
+                </div>
                 <input
                   type="text"
                   required
+                  maxLength={80}
                   value={shippingDetails.name}
-                  onChange={(e) => setShippingDetails({ ...shippingDetails, name: e.target.value })}
+                  onChange={(e) => setShippingDetails({ ...shippingDetails, name: sanitizeText(e.target.value, 80) })}
                   placeholder="e.g. Radhika Sharma"
                   className="w-full px-3 py-2 bg-white border border-[#E6DDD0] rounded-lg text-xs focus:outline-none focus:border-[#C17D3C]"
                 />
@@ -160,29 +227,36 @@ export const SwatchKitBuilder: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-[11px] font-semibold text-[#2B2220] mb-1">
-                    Phone Number
-                  </label>
+                  <div className="flex justify-between items-center mb-1">
+                    <label className="text-[11px] font-semibold text-[#2B2220]">
+                      Phone Number *
+                    </label>
+                    <span className="text-[10px] text-[#9E8E87]">{shippingDetails.phone.length}/20</span>
+                  </div>
                   <input
                     type="tel"
                     required
+                    maxLength={20}
                     value={shippingDetails.phone}
-                    onChange={(e) => setShippingDetails({ ...shippingDetails, phone: e.target.value })}
+                    onChange={(e) => setShippingDetails({ ...shippingDetails, phone: sanitizePhone(e.target.value, 20) })}
                     placeholder="+91 98765 43210"
                     className="w-full px-3 py-2 bg-white border border-[#E6DDD0] rounded-lg text-xs focus:outline-none focus:border-[#C17D3C]"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-semibold text-[#2B2220] mb-1">
-                    6-Digit PIN Code
-                  </label>
+                  <div className="flex justify-between items-center mb-1">
+                    <label className="text-[11px] font-semibold text-[#2B2220]">
+                      6-Digit PIN Code *
+                    </label>
+                    <span className="text-[10px] text-[#9E8E87]">{shippingDetails.pincode.length}/6</span>
+                  </div>
                   <input
                     type="text"
                     required
                     maxLength={6}
                     value={shippingDetails.pincode}
-                    onChange={(e) => setShippingDetails({ ...shippingDetails, pincode: e.target.value })}
+                    onChange={(e) => setShippingDetails({ ...shippingDetails, pincode: sanitizePincode(e.target.value) })}
                     placeholder="400001"
                     className="w-full px-3 py-2 bg-white border border-[#E6DDD0] rounded-lg text-xs focus:outline-none focus:border-[#C17D3C]"
                   />
@@ -190,14 +264,18 @@ export const SwatchKitBuilder: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-[11px] font-semibold text-[#2B2220] mb-1">
-                  Street Address
-                </label>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="text-[11px] font-semibold text-[#2B2220]">
+                    Street Address *
+                  </label>
+                  <span className="text-[10px] text-[#9E8E87]">{shippingDetails.address.length}/300</span>
+                </div>
                 <textarea
                   required
                   rows={2}
+                  maxLength={300}
                   value={shippingDetails.address}
-                  onChange={(e) => setShippingDetails({ ...shippingDetails, address: e.target.value })}
+                  onChange={(e) => setShippingDetails({ ...shippingDetails, address: sanitizeText(e.target.value, 300) })}
                   placeholder="Apartment, building, street, area..."
                   className="w-full px-3 py-2 bg-white border border-[#E6DDD0] rounded-lg text-xs focus:outline-none focus:border-[#C17D3C]"
                 />

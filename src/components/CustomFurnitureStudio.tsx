@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
-import { Sparkles, Sliders, CheckCircle2, ShieldCheck, Ruler, ArrowRight, Upload, HelpCircle, FileText } from 'lucide-react';
+import { Sparkles, Sliders, CheckCircle2, ShieldCheck, Ruler, ArrowRight, Upload, HelpCircle, FileText, AlertCircle } from 'lucide-react';
 import { CustomFurnitureRequest } from '../types';
+import { sanitizeText, sanitizeEmail, sanitizePhone, clampNumber, isValidEmail, rateLimiter } from '../lib/security';
+import { atelierStore } from '../lib/store';
 
 interface CustomFurnitureStudioProps {
   onSubmitRequest?: (request: CustomFurnitureRequest) => void;
@@ -26,6 +28,7 @@ export const CustomFurnitureStudio: React.FC<CustomFurnitureStudioProps> = ({
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [city, setCity] = useState('');
+  const [formError, setFormError] = useState<string | null>(null);
   const [submittedRequest, setSubmittedRequest] = useState<CustomFurnitureRequest | null>(null);
 
   // Dynamic Price Estimator formula
@@ -40,8 +43,12 @@ export const CustomFurnitureStudio: React.FC<CustomFurnitureStudioProps> = ({
     if (itemType === 'wardrobe') basePrice = 125000;
     if (itemType === 'bar-cabinet') basePrice = 78000;
 
+    const safeW = clampNumber(widthCm, 40, 500, 240);
+    const safeD = clampNumber(depthCm, 30, 300, 100);
+    const safeH = clampNumber(heightCm, 30, 300, 85);
+
     // Dimension volume multiplier
-    const volumeFactor = (widthCm * depthCm * heightCm) / (200 * 90 * 80);
+    const volumeFactor = (safeW * safeD * safeH) / (200 * 90 * 80);
     let total = basePrice * Math.max(0.8, volumeFactor);
 
     // Wood premium
@@ -59,21 +66,59 @@ export const CustomFurnitureStudio: React.FC<CustomFurnitureStudioProps> = ({
 
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setFormError(null);
+
+    const rateCheck = rateLimiter.isAllowed('bespoke-request', 3, 60000);
+    if (!rateCheck.allowed) {
+      setFormError(`Too many custom quote requests submitted. Please wait ${rateCheck.waitSeconds} seconds.`);
+      return;
+    }
+
+    const cleanName = sanitizeText(name, 80);
+    const cleanPhone = sanitizePhone(phone, 20);
+    const cleanEmail = sanitizeEmail(email, 100);
+    const cleanCity = sanitizeText(city, 60);
+    const cleanNotes = sanitizeText(specialInstructions, 600);
+
+    if (!cleanName || cleanName.length < 2) {
+      setFormError('Please enter a valid name (minimum 2 characters).');
+      return;
+    }
+
+    if (!cleanPhone || cleanPhone.length < 8) {
+      setFormError('Please enter a valid phone number with area/country code.');
+      return;
+    }
+
+    if (!isValidEmail(cleanEmail)) {
+      setFormError('Please enter a valid email address.');
+      return;
+    }
+
+    if (!cleanCity || cleanCity.length < 2) {
+      setFormError('Please enter your city/location in India.');
+      return;
+    }
+
+    const safeW = clampNumber(widthCm, 40, 500, 240);
+    const safeD = clampNumber(depthCm, 30, 300, 100);
+    const safeH = clampNumber(heightCm, 30, 300, 85);
+
     const req: CustomFurnitureRequest = {
       requestId: `OCHRE-BESPOKE-${Math.floor(1000 + Math.random() * 9000)}`,
-      customerName: name,
-      phone,
-      email,
-      city,
+      customerName: cleanName,
+      phone: cleanPhone,
+      email: cleanEmail,
+      city: cleanCity,
       itemType,
-      customWidthCm: widthCm,
-      customDepthCm: depthCm,
-      customHeightCm: heightCm,
+      customWidthCm: safeW,
+      customDepthCm: safeD,
+      customHeightCm: safeH,
       woodSpecies,
       upholsteryFabric,
       hasBrassAccents,
       hasFlutedSlats,
-      specialInstructions,
+      specialInstructions: cleanNotes,
       estimatedPriceINR,
       submittedAt: new Date().toLocaleDateString('en-IN', {
         day: 'numeric',
@@ -84,6 +129,7 @@ export const CustomFurnitureStudio: React.FC<CustomFurnitureStudioProps> = ({
     };
 
     setSubmittedRequest(req);
+    atelierStore.addBespokeRequest(req);
     if (onSubmitRequest) onSubmitRequest(req);
   };
 
@@ -371,12 +417,16 @@ export const CustomFurnitureStudio: React.FC<CustomFurnitureStudioProps> = ({
 
             {/* Special Instructions */}
             <div className="space-y-2 pt-4 border-t border-[#E6DDD0]">
-              <label className="block text-xs font-bold text-[#2B2220]">
-                5. Room Layout Notes or Blueprint Requests:
-              </label>
+              <div className="flex justify-between items-center">
+                <label className="text-xs font-bold text-[#2B2220]">
+                  5. Room Layout Notes or Blueprint Requests:
+                </label>
+                <span className="text-[10px] text-[#9E8E87]">{specialInstructions.length}/600</span>
+              </div>
               <textarea
+                maxLength={600}
                 value={specialInstructions}
-                onChange={(e) => setSpecialInstructions(e.target.value)}
+                onChange={(e) => setSpecialInstructions(sanitizeText(e.target.value, 600))}
                 placeholder="Mention specific room entrance clearance, wall socket cutouts, or custom stain requests..."
                 rows={3}
                 className="w-full p-3 bg-[#FAF6F0] border border-[#E6DDD0] rounded-xl text-xs focus:outline-none focus:border-[#C17D3C]"
@@ -399,6 +449,13 @@ export const CustomFurnitureStudio: React.FC<CustomFurnitureStudioProps> = ({
                 </p>
               </div>
 
+              {formError && (
+                <div className="p-3 bg-rose-950/80 border border-rose-600/50 text-rose-200 rounded-xl text-xs flex items-center gap-2">
+                  <AlertCircle size={16} className="shrink-0 text-rose-400" />
+                  <span>{formError}</span>
+                </div>
+              )}
+
               {/* Form Input for Quote Request */}
               <form onSubmit={handleFormSubmit} className="space-y-4">
                 <h4 className="font-serif-brand font-medium text-lg text-white">
@@ -406,41 +463,53 @@ export const CustomFurnitureStudio: React.FC<CustomFurnitureStudioProps> = ({
                 </h4>
 
                 <div className="space-y-3">
-                  <input
-                    type="text"
-                    required
-                    placeholder="Full Name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="w-full px-3 py-2.5 bg-[#3A2E2B] border border-[#423430] rounded-lg text-xs text-white placeholder-[#9E8E87] focus:outline-none focus:border-[#C17D3C]"
-                  />
+                  <div>
+                    <input
+                      type="text"
+                      required
+                      maxLength={80}
+                      placeholder="Full Name"
+                      value={name}
+                      onChange={(e) => setName(sanitizeText(e.target.value, 80))}
+                      className="w-full px-3 py-2.5 bg-[#3A2E2B] border border-[#423430] rounded-lg text-xs text-white placeholder-[#9E8E87] focus:outline-none focus:border-[#C17D3C]"
+                    />
+                  </div>
 
-                  <input
-                    type="tel"
-                    required
-                    placeholder="Phone Number (e.g. 9876543210)"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    className="w-full px-3 py-2.5 bg-[#3A2E2B] border border-[#423430] rounded-lg text-xs text-white placeholder-[#9E8E87] focus:outline-none focus:border-[#C17D3C]"
-                  />
+                  <div>
+                    <input
+                      type="tel"
+                      required
+                      maxLength={20}
+                      placeholder="Phone Number (e.g. +91 98765 43210)"
+                      value={phone}
+                      onChange={(e) => setPhone(sanitizePhone(e.target.value, 20))}
+                      className="w-full px-3 py-2.5 bg-[#3A2E2B] border border-[#423430] rounded-lg text-xs text-white placeholder-[#9E8E87] focus:outline-none focus:border-[#C17D3C]"
+                    />
+                  </div>
 
-                  <input
-                    type="email"
-                    required
-                    placeholder="Email Address"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full px-3 py-2.5 bg-[#3A2E2B] border border-[#423430] rounded-lg text-xs text-white placeholder-[#9E8E87] focus:outline-none focus:border-[#C17D3C]"
-                  />
+                  <div>
+                    <input
+                      type="email"
+                      required
+                      maxLength={100}
+                      placeholder="Email Address"
+                      value={email}
+                      onChange={(e) => setEmail(sanitizeEmail(e.target.value, 100))}
+                      className="w-full px-3 py-2.5 bg-[#3A2E2B] border border-[#423430] rounded-lg text-xs text-white placeholder-[#9E8E87] focus:outline-none focus:border-[#C17D3C]"
+                    />
+                  </div>
 
-                  <input
-                    type="text"
-                    required
-                    placeholder="City / Location in India"
-                    value={city}
-                    onChange={(e) => setCity(e.target.value)}
-                    className="w-full px-3 py-2.5 bg-[#3A2E2B] border border-[#423430] rounded-lg text-xs text-white placeholder-[#9E8E87] focus:outline-none focus:border-[#C17D3C]"
-                  />
+                  <div>
+                    <input
+                      type="text"
+                      required
+                      maxLength={60}
+                      placeholder="City / Location in India"
+                      value={city}
+                      onChange={(e) => setCity(sanitizeText(e.target.value, 60))}
+                      className="w-full px-3 py-2.5 bg-[#3A2E2B] border border-[#423430] rounded-lg text-xs text-white placeholder-[#9E8E87] focus:outline-none focus:border-[#C17D3C]"
+                    />
+                  </div>
                 </div>
 
                 <button

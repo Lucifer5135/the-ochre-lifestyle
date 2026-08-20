@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Cookie, X, Check, ShieldCheck } from 'lucide-react';
 import { CookiePreferences } from '../types';
+import { safeStorage } from '../lib/security';
 
 interface CookieConsentBannerProps {
   onOpenPreferences: () => void;
@@ -10,7 +11,7 @@ export const CookieConsentBanner: React.FC<CookieConsentBannerProps> = ({ onOpen
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
-    const saved = localStorage.getItem('ochre_cookie_consent');
+    const saved = safeStorage.getItem<CookiePreferences | null>('ochre_cookie_consent', null);
     if (!saved) {
       setIsVisible(true);
     }
@@ -23,7 +24,7 @@ export const CookieConsentBanner: React.FC<CookieConsentBannerProps> = ({ onOpen
       marketing: true,
       acceptedAt: new Date().toISOString(),
     };
-    localStorage.setItem('ochre_cookie_consent', JSON.stringify(prefs));
+    safeStorage.setItem('ochre_cookie_consent', prefs);
     setIsVisible(false);
   };
 
@@ -34,7 +35,7 @@ export const CookieConsentBanner: React.FC<CookieConsentBannerProps> = ({ onOpen
       marketing: false,
       acceptedAt: new Date().toISOString(),
     };
-    localStorage.setItem('ochre_cookie_consent', JSON.stringify(prefs));
+    safeStorage.setItem('ochre_cookie_consent', prefs);
     setIsVisible(false);
   };
 

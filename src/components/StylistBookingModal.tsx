@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
-import { X, Sparkles, Calendar, Clock, MapPin, Check, PhoneCall } from 'lucide-react';
+import { X, Sparkles, Calendar, Clock, MapPin, Check, PhoneCall, AlertCircle } from 'lucide-react';
 import { StylistAppointment } from '../types';
+import { sanitizeText, sanitizePhone, rateLimiter } from '../lib/security';
+import { atelierStore } from '../lib/store';
 
 export const StylistBookingModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
   isOpen,
@@ -20,16 +22,75 @@ export const StylistBookingModal: React.FC<{ isOpen: boolean; onClose: () => voi
     roomType: 'Living Room',
   });
 
+  const [formError, setFormError] = useState<string | null>(null);
   const [confirmed, setConfirmed] = useState(false);
+
+  const todayStr = new Date().toISOString().split('T')[0];
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setFormError(null);
+
+    const rateCheck = rateLimiter.isAllowed('stylist-booking', 3, 60000);
+    if (!rateCheck.allowed) {
+      setFormError(`Too many booking requests. Please wait ${rateCheck.waitSeconds} seconds before trying again.`);
+      return;
+    }
+
+    const cleanName = sanitizeText(formData.name, 80);
+    const cleanPhone = sanitizePhone(formData.phone, 20);
+    const cleanNotes = sanitizeText(formData.notes, 500);
+
+    if (!cleanName || cleanName.length < 2) {
+      setFormError('Please enter a valid name (minimum 2 characters).');
+      return;
+    }
+
+    if (!cleanPhone || cleanPhone.length < 8) {
+      setFormError('Please enter a valid phone number with area code.');
+      return;
+    }
+
+    if (!formData.preferredDate) {
+      setFormError('Please select a preferred consultation date.');
+      return;
+    }
+
+    setFormData({
+      ...formData,
+      name: cleanName,
+      phone: cleanPhone,
+      notes: cleanNotes,
+    });
+
+    const bookingRecord = {
+      id: `STYL-${Math.floor(1000 + Math.random() * 9000)}`,
+      customerName: cleanName,
+      phone: cleanPhone,
+      roomType: formData.roomType,
+      consultationType: formData.consultationType,
+      preferredDate: formData.preferredDate,
+      preferredTime: formData.preferredTime,
+      notes: cleanNotes,
+      status: 'Confirmed & Scheduled' as const,
+      createdAt: new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
+    };
+
+    atelierStore.addStylistBooking(bookingRecord);
     setConfirmed(true);
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs overflow-y-auto animate-in fade-in duration-200">
-      <div className="relative w-full max-w-xl bg-white rounded-2xl border border-[#E6DDD0] shadow-2xl overflow-hidden my-8 p-6 sm:p-8 space-y-6">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs overscroll-contain overflow-y-auto animate-in fade-in duration-200"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div
+        className="relative w-full max-w-xl bg-white rounded-2xl border border-[#E6DDD0] shadow-2xl overflow-y-auto max-h-[90vh] my-auto p-6 sm:p-8 space-y-6 overscroll-contain"
+        onClick={(e) => e.stopPropagation()}
+      >
         <button
           onClick={onClose}
           className="absolute top-4 right-4 p-2 bg-[#FAF6F0] hover:bg-[#2B2220] hover:text-white rounded-full transition-colors text-[#2B2220] cursor-pointer"
@@ -51,6 +112,13 @@ export const StylistBookingModal: React.FC<{ isOpen: boolean; onClose: () => voi
             Receive personalized moodboards, floorplan layouts, and material recommendations tailored to your floor dimensions.
           </p>
         </div>
+
+        {formError && (
+          <div className="p-3.5 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl text-xs flex items-center gap-2">
+            <AlertCircle size={16} className="shrink-0 text-rose-600" />
+            <span>{formError}</span>
+          </div>
+        )}
 
         {confirmed ? (
           <div className="text-center space-y-4 py-8">
@@ -77,24 +145,32 @@ export const StylistBookingModal: React.FC<{ isOpen: boolean; onClose: () => voi
           <form onSubmit={handleSubmit} className="space-y-4 text-xs">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block font-semibold text-[#2B2220] mb-1">Your Name</label>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="font-semibold text-[#2B2220]">Your Name *</label>
+                  <span className="text-[10px] text-[#9E8E87]">{formData.name.length}/80</span>
+                </div>
                 <input
                   type="text"
                   required
+                  maxLength={80}
                   value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, name: sanitizeText(e.target.value, 80) })}
                   placeholder="Radhika Sharma"
                   className="w-full px-3 py-2 border border-[#E6DDD0] rounded-lg focus:outline-none focus:border-[#C17D3C]"
                 />
               </div>
 
               <div>
-                <label className="block font-semibold text-[#2B2220] mb-1">Phone Number</label>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="font-semibold text-[#2B2220]">Phone Number *</label>
+                  <span className="text-[10px] text-[#9E8E87]">{formData.phone.length}/20</span>
+                </div>
                 <input
                   type="tel"
                   required
+                  maxLength={20}
                   value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, phone: sanitizePhone(e.target.value, 20) })}
                   placeholder="+91 98765 43210"
                   className="w-full px-3 py-2 border border-[#E6DDD0] rounded-lg focus:outline-none focus:border-[#C17D3C]"
                 />
@@ -121,7 +197,7 @@ export const StylistBookingModal: React.FC<{ isOpen: boolean; onClose: () => voi
                 <label className="block font-semibold text-[#2B2220] mb-1">Target Room</label>
                 <select
                   value={formData.roomType}
-                  onChange={(e) => setFormData({ ...formData, roomType: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, roomType: sanitizeText(e.target.value, 50) })}
                   className="w-full px-3 py-2 border border-[#E6DDD0] rounded-lg focus:outline-none focus:border-[#C17D3C] bg-white"
                 >
                   <option value="Living Room">Living Room</option>
@@ -134,10 +210,11 @@ export const StylistBookingModal: React.FC<{ isOpen: boolean; onClose: () => voi
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block font-semibold text-[#2B2220] mb-1">Preferred Date</label>
+                <label className="block font-semibold text-[#2B2220] mb-1">Preferred Date *</label>
                 <input
                   type="date"
                   required
+                  min={todayStr}
                   value={formData.preferredDate}
                   onChange={(e) => setFormData({ ...formData, preferredDate: e.target.value })}
                   className="w-full px-3 py-2 border border-[#E6DDD0] rounded-lg focus:outline-none focus:border-[#C17D3C] bg-white"
@@ -160,11 +237,15 @@ export const StylistBookingModal: React.FC<{ isOpen: boolean; onClose: () => voi
             </div>
 
             <div>
-              <label className="block font-semibold text-[#2B2220] mb-1">Space Requirements / Notes</label>
+              <div className="flex justify-between items-center mb-1">
+                <label className="font-semibold text-[#2B2220]">Space Requirements / Notes</label>
+                <span className="text-[10px] text-[#9E8E87]">{formData.notes.length}/500</span>
+              </div>
               <textarea
                 rows={2}
+                maxLength={500}
                 value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, notes: sanitizeText(e.target.value, 500) })}
                 placeholder="Mention dimensions, preferred wood stains, or budget notes..."
                 className="w-full px-3 py-2 border border-[#E6DDD0] rounded-lg focus:outline-none focus:border-[#C17D3C]"
               />

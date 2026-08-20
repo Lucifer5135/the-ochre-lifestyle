@@ -1,143 +1,52 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Search, Truck, Clock, ShieldCheck, MapPin, CheckCircle2, ChevronRight, PackageCheck } from 'lucide-react';
 import { OrderTrackInfo } from '../types';
+import { sanitizeOrderCode, sanitizeText, rateLimiter } from '../lib/security';
+import { atelierStore } from '../lib/store';
 
 interface OrderTrackingModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-export const DEMO_ORDERS: Record<string, OrderTrackInfo> = {
-  'OCHRE-8921': {
-    orderId: 'OCHRE-8921',
-    customerName: 'Ananya Sharma',
-    phone: '9819238472',
-    orderDate: '18 Jul 2026',
-    estimatedDeliveryDate: '26 Jul 2026',
-    currentStepIndex: 2,
-    deliveryAddress: '402 Sunset Towers, Worli Sea Face, Mumbai - 400018',
-    carrierName: 'The Ochre White-Glove Direct Logistics',
-    trackingNumber: 'OG-MUM-884912',
-    isCustomOrder: false,
-    items: [
-      {
-        name: 'The Ochre Curved Sectional Sofa',
-        finish: 'Raw Plantation Teak / Terracotta Velvet',
-        qty: 1,
-        priceINR: 185000,
-        image: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=300&q=80',
-      },
-      {
-        name: 'Aura Hand-Tufted Wool & Jute Area Rug',
-        finish: '8x10 ft Ivory/Terracotta',
-        qty: 1,
-        priceINR: 38500,
-        image: 'https://images.unsplash.com/photo-1600121848594-d8644e57abab?auto=format&fit=crop&w=300&q=80',
-      },
-    ],
-    steps: [
-      {
-        title: 'Order Confirmed & Solid Timber Selected',
-        description: 'Kiln-dried plantation teak planks hand-selected for zero flaws.',
-        date: '18 Jul 2026, 10:30 AM',
-        isCompleted: true,
-        isCurrent: false,
-      },
-      {
-        title: 'Master Artisan Hand-Carving & Joinery',
-        description: 'Frame crafted using mortise-and-tenon joinery in Jodhpur workshop.',
-        date: '21 Jul 2026, 04:15 PM',
-        isCompleted: true,
-        isCurrent: false,
-      },
-      {
-        title: 'Upholstery & High-Resilience Cushioning',
-        description: 'Cotton velvet upholstery tailored with stain-resistant protective coat.',
-        date: '23 Jul 2026, 09:00 AM',
-        isCompleted: false,
-        isCurrent: true,
-      },
-      {
-        title: 'Quality Inspection & Wooden Crating',
-        description: '100% Solid frame stress-test audit & climate-sealed crating.',
-        isCompleted: false,
-        isCurrent: false,
-      },
-      {
-        title: 'White Glove Transit & In-Home Assembly',
-        description: 'Scheduled room placement and packaging removal by Ochre technicians.',
-        isCompleted: false,
-        isCurrent: false,
-      },
-    ],
-  },
-  'OCHRE-SWATCH-341': {
-    orderId: 'OCHRE-SWATCH-341',
-    customerName: 'Rohan Verma',
-    phone: '9876543210',
-    orderDate: '21 Jul 2026',
-    estimatedDeliveryDate: '24 Jul 2026',
-    currentStepIndex: 3,
-    deliveryAddress: 'House No 14, Koramangala 4th Block, Bengaluru - 560034',
-    carrierName: 'Bluedart Express Courier',
-    trackingNumber: 'BD-BLR-9921',
-    isCustomOrder: false,
-    items: [
-      {
-        name: 'Free Ochre Swatch Box (5 Swatches)',
-        finish: 'Teak Stains + Terracotta Velvet & Bouclé',
-        qty: 1,
-        priceINR: 0,
-        image: 'https://images.unsplash.com/photo-1584100936595-c0654b55a2e2?auto=format&fit=crop&w=300&q=80',
-      },
-    ],
-    steps: [
-      {
-        title: 'Swatch Kit Requested',
-        description: 'Fabric and teak wood chips packaged in presentation box.',
-        date: '21 Jul 2026',
-        isCompleted: true,
-        isCurrent: false,
-      },
-      {
-        title: 'Dispatched via Bluedart Express',
-        description: 'Air express transit initiated from Jodhpur hub.',
-        date: '22 Jul 2026',
-        isCompleted: true,
-        isCurrent: false,
-      },
-      {
-        title: 'Out for Local Delivery in Bengaluru',
-        description: 'On route with delivery agent (Ramesh - 9821019283).',
-        date: '23 Jul 2026',
-        isCompleted: false,
-        isCurrent: true,
-      },
-      {
-        title: 'Delivered to Doorstep',
-        description: 'Swatch box delivered for home testing.',
-        isCompleted: false,
-        isCurrent: false,
-      },
-    ],
-  },
-};
-
 export const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
+  const [ordersMap, setOrdersMap] = useState<Record<string, OrderTrackInfo>>(() => atelierStore.getOrders());
   const [inputQuery, setInputQuery] = useState('OCHRE-8921');
-  const [activeOrder, setActiveOrder] = useState<OrderTrackInfo | null>(DEMO_ORDERS['OCHRE-8921']);
+  const [activeOrder, setActiveOrder] = useState<OrderTrackInfo | null>(() => atelierStore.getOrders()['OCHRE-8921'] || null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    const live = atelierStore.getOrders();
+    setOrdersMap(live);
+    if (inputQuery && live[inputQuery]) {
+      setActiveOrder(live[inputQuery]);
+    }
+  }, [isOpen]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    const clean = inputQuery.trim().toUpperCase();
-    if (DEMO_ORDERS[clean]) {
-      setActiveOrder(DEMO_ORDERS[clean]);
+    setErrorMsg(null);
+
+    const rateCheck = rateLimiter.isAllowed('order-track-search', 10, 60000);
+    if (!rateCheck.allowed) {
+      setErrorMsg(`Too many tracking lookup requests. Please wait ${rateCheck.waitSeconds} seconds before searching again.`);
+      return;
+    }
+
+    const clean = sanitizeOrderCode(inputQuery, 30);
+    if (!clean) {
+      setErrorMsg('Please enter a valid alphanumeric Order Reference ID.');
+      return;
+    }
+
+    const currentOrders = atelierStore.getOrders();
+    if (currentOrders[clean]) {
+      setActiveOrder(currentOrders[clean]);
       setErrorMsg(null);
     } else {
-      setErrorMsg(`No active order found for "${inputQuery}". Try sample ID "OCHRE-8921" or "OCHRE-SWATCH-341".`);
+      setErrorMsg(`No active order found for "${clean}". Try sample ID "OCHRE-8921", "OCHRE-5510", or "OCHRE-SWATCH-341".`);
     }
   };
 
@@ -150,8 +59,16 @@ export const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({ isOpen, 
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-xs overflow-y-auto animate-in fade-in duration-200">
-      <div className="relative w-full max-w-4xl bg-white rounded-2xl border border-[#E6DDD0] shadow-2xl overflow-hidden my-8 p-6 sm:p-8 space-y-6">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-xs overscroll-contain overflow-y-auto animate-in fade-in duration-200"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div
+        className="relative w-full max-w-4xl bg-white rounded-2xl border border-[#E6DDD0] shadow-2xl overflow-y-auto max-h-[90vh] my-auto p-6 sm:p-8 space-y-6 overscroll-contain"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header & Close */}
         <button
           onClick={onClose}
@@ -180,10 +97,11 @@ export const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({ isOpen, 
             <Search size={18} className="absolute left-3.5 top-3.5 text-[#C17D3C]" />
             <input
               type="text"
+              maxLength={30}
               value={inputQuery}
-              onChange={(e) => setInputQuery(e.target.value)}
+              onChange={(e) => setInputQuery(sanitizeOrderCode(e.target.value, 30))}
               placeholder="Enter Order ID (e.g. OCHRE-8921 or OCHRE-SWATCH-341)"
-              className="w-full pl-10 pr-4 py-3 bg-[#FAF6F0] border border-[#E6DDD0] rounded-xl text-xs font-semibold focus:outline-none focus:border-[#C17D3C] text-[#2B2220]"
+              className="w-full pl-10 pr-4 py-3 bg-[#FAF6F0] border border-[#E6DDD0] rounded-xl text-xs font-semibold focus:outline-none focus:border-[#C17D3C] text-[#2B2220] uppercase"
             />
           </div>
 
@@ -201,7 +119,7 @@ export const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({ isOpen, 
           <button
             onClick={() => {
               setInputQuery('OCHRE-8921');
-              setActiveOrder(DEMO_ORDERS['OCHRE-8921']);
+              if (ordersMap['OCHRE-8921']) setActiveOrder(ordersMap['OCHRE-8921']);
               setErrorMsg(null);
             }}
             className="px-2.5 py-1 bg-[#FAF6F0] hover:bg-[#C17D3C] hover:text-white rounded-md text-[11px] font-mono transition-colors cursor-pointer"
@@ -212,7 +130,7 @@ export const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({ isOpen, 
           <button
             onClick={() => {
               setInputQuery('OCHRE-SWATCH-341');
-              setActiveOrder(DEMO_ORDERS['OCHRE-SWATCH-341']);
+              if (ordersMap['OCHRE-SWATCH-341']) setActiveOrder(ordersMap['OCHRE-SWATCH-341']);
               setErrorMsg(null);
             }}
             className="px-2.5 py-1 bg-[#FAF6F0] hover:bg-[#C17D3C] hover:text-white rounded-md text-[11px] font-mono transition-colors cursor-pointer"

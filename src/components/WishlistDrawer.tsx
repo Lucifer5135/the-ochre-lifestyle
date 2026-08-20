@@ -28,9 +28,17 @@ export const WishlistDrawer: React.FC<WishlistDrawerProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
-      <div className="w-full max-w-md bg-white h-full shadow-2xl border-l border-[#E6DDD0] flex flex-col justify-between overflow-hidden animate-in slide-in-from-right duration-300">
-        <div className="p-5 bg-[#FAF6F0] border-b border-[#E6DDD0] flex items-center justify-between">
+    <div
+      className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-xs overscroll-contain animate-in fade-in duration-200"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div
+        className="w-full max-w-md bg-white h-full shadow-2xl border-l border-[#E6DDD0] flex flex-col justify-between overflow-hidden animate-in slide-in-from-right duration-300 overscroll-contain"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="p-5 bg-[#FAF6F0] border-b border-[#E6DDD0] flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2">
             <Heart size={20} className="text-[#C17D3C]" fill="currentColor" />
             <h3 className="font-serif-brand font-medium text-lg text-[#2B2220]">
@@ -46,7 +54,7 @@ export const WishlistDrawer: React.FC<WishlistDrawerProps> = ({
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-5 space-y-4">
+        <div className="flex-1 overflow-y-auto overscroll-contain p-5 space-y-4">
           {wishlist.length === 0 ? (
             <div className="text-center space-y-3 py-20 text-[#6B5B54]">
               <Heart size={32} className="mx-auto text-[#9E8E87]" />

@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
-import { X, ShoppingBag, Trash2, ShieldCheck, Truck, ArrowRight, Tag, Check, Sparkles } from 'lucide-react';
+import { X, ShoppingBag, Trash2, ShieldCheck, Truck, ArrowRight, Tag, Check, Sparkles, AlertCircle } from 'lucide-react';
 import { CartItem } from '../types';
+import { sanitizeCouponCode, clampNumber, rateLimiter } from '../lib/security';
+import { atelierStore } from '../lib/store';
+import { OrderTrackInfo } from '../types';
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -25,6 +28,10 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
 
   const [coupon, setCoupon] = useState('OCHRE10');
   const [appliedDiscount, setAppliedDiscount] = useState(0.1); // 10%
+  const [couponFeedback, setCouponFeedback] = useState<{ msg: string; isError: boolean } | null>({
+    msg: '10% Welcome Discount applied!',
+    isError: false,
+  });
   const [checkoutSuccess, setCheckoutSuccess] = useState(false);
 
   const formatINR = (amount: number) => {
@@ -35,39 +42,125 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
     }).format(amount);
   };
 
-  const subtotal = cart.reduce((sum, item) => sum + item.product.priceINR * item.quantity, 0);
-  const discountAmount = subtotal * appliedDiscount;
+  const subtotal = cart.reduce((sum, item) => sum + (item.product?.priceINR || 0) * clampNumber(item.quantity, 1, 20, 1), 0);
+  const discountAmount = Math.max(0, subtotal * appliedDiscount);
   const isFreeDelivery = subtotal >= 150000;
   const shippingFee = isFreeDelivery ? 0 : 3500;
-  const grandTotal = subtotal - discountAmount + shippingFee;
+  const grandTotal = Math.max(0, subtotal - discountAmount + shippingFee);
 
   const handleApplyCoupon = (e: React.FormEvent) => {
     e.preventDefault();
-    if (coupon.trim().toUpperCase() === 'OCHRE10') {
+
+    const rateCheck = rateLimiter.isAllowed('coupon-attempt', 5, 30000);
+    if (!rateCheck.allowed) {
+      setCouponFeedback({
+        msg: `Too many attempts. Please wait ${rateCheck.waitSeconds}s.`,
+        isError: true,
+      });
+      return;
+    }
+
+    const clean = sanitizeCouponCode(coupon, 20);
+    if (clean === 'OCHRE10') {
       setAppliedDiscount(0.1);
-    } else if (coupon.trim().toUpperCase() === 'OCHRE5000') {
+      setCouponFeedback({ msg: '10% member discount applied!', isError: false });
+    } else if (clean === 'OCHRE2500') {
+      setAppliedDiscount(0.12);
+      setCouponFeedback({ msg: '₹2,500 welcome voucher applied!', isError: false });
+    } else if (clean === 'OCHRE5000') {
       setAppliedDiscount(0.15);
+      setCouponFeedback({ msg: '15% festive architectural voucher applied!', isError: false });
+    } else {
+      setAppliedDiscount(0);
+      setCouponFeedback({ msg: 'Invalid or expired coupon code.', isError: true });
     }
   };
 
+  const [placedOrderId, setPlacedOrderId] = useState<string>('');
+
   const handleCheckout = () => {
+    const generatedId = `OCHRE-${Math.floor(1000 + Math.random() * 9000)}`;
+    setPlacedOrderId(generatedId);
+
+    const orderRecord: OrderTrackInfo = {
+      orderId: generatedId,
+      customerName: 'Valued Store Patron',
+      phone: '+91 98200 88291',
+      orderDate: new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
+      estimatedDeliveryDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
+      currentStepIndex: 0,
+      deliveryAddress: 'Direct In-Home White Glove Delivery, India',
+      carrierName: 'The Ochre White-Glove Dedicated Fleet',
+      trackingNumber: `OG-TRK-${Math.floor(100000 + Math.random() * 900000)}`,
+      isCustomOrder: false,
+      items: cart.map((c) => ({
+        name: c.product.name,
+        finish: `${c.selectedWoodFinish?.name || 'Raw Plantation Teak'} / ${c.selectedFabric?.name || 'Natural Fabric'}`,
+        qty: clampNumber(c.quantity, 1, 20, 1),
+        priceINR: c.product.priceINR,
+        image: c.product.image,
+      })),
+      steps: [
+        {
+          title: 'Order Confirmed & Solid Timber Selected',
+          description: 'Kiln-dried plantation teak planks hand-selected for zero grain flaws.',
+          date: new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
+          isCompleted: true,
+          isCurrent: true,
+        },
+        {
+          title: 'Master Artisan Hand-Carving & Joinery',
+          description: 'Frame crafted using mortise-and-tenon joinery in Jodhpur workshop.',
+          isCompleted: false,
+          isCurrent: false,
+        },
+        {
+          title: 'Upholstery & High-Resilience Cushioning',
+          description: 'Cotton velvet upholstery tailored with stain-resistant protective coat.',
+          isCompleted: false,
+          isCurrent: false,
+        },
+        {
+          title: 'Quality Inspection & Wooden Crating',
+          description: '100% Solid frame stress-test audit & climate-sealed crating.',
+          isCompleted: false,
+          isCurrent: false,
+        },
+        {
+          title: 'White Glove Transit & In-Home Assembly',
+          description: 'Scheduled room placement and packaging removal by Ochre technicians.',
+          isCompleted: false,
+          isCurrent: false,
+        },
+      ],
+    };
+
+    atelierStore.addOrder(orderRecord);
     setCheckoutSuccess(true);
     setTimeout(() => {
       onClearCart();
       setCheckoutSuccess(false);
       onClose();
-    }, 4000);
+    }, 6000);
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
-      <div className="w-full max-w-md bg-white h-full shadow-2xl border-l border-[#E6DDD0] flex flex-col justify-between overflow-hidden animate-in slide-in-from-right duration-300">
+    <div
+      className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-xs overscroll-contain animate-in fade-in duration-200"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div
+        className="w-full max-w-md bg-white h-full shadow-2xl border-l border-[#E6DDD0] flex flex-col justify-between overflow-hidden animate-in slide-in-from-right duration-300 overscroll-contain"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Cart Header */}
-        <div className="p-5 bg-[#FAF6F0] border-b border-[#E6DDD0] flex items-center justify-between">
+        <div className="p-5 bg-[#FAF6F0] border-b border-[#E6DDD0] flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2">
             <ShoppingBag size={20} className="text-[#C17D3C]" />
             <h3 className="font-serif-brand font-medium text-lg text-[#2B2220]">
-              Your Shopping Bag ({cart.reduce((a, b) => a + b.quantity, 0)})
+              Your Shopping Bag ({cart.reduce((a, b) => a + clampNumber(b.quantity, 1, 20, 1), 0)})
             </h3>
           </div>
 
@@ -80,7 +173,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
         </div>
 
         {/* Cart Items List */}
-        <div className="flex-1 overflow-y-auto p-5 space-y-4">
+        <div className="flex-1 overflow-y-auto overscroll-contain p-5 space-y-4">
           {checkoutSuccess ? (
             <div className="text-center space-y-4 py-16">
               <div className="w-16 h-16 bg-[#C17D3C] text-white rounded-full flex items-center justify-center mx-auto shadow-lg animate-bounce">
@@ -92,7 +185,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
               </h3>
 
               <p className="text-xs text-[#6B5B54] max-w-xs mx-auto">
-                Thank you for choosing The Ochre Lifestyle. Your order reference code is <strong>OCHRE-ORD-{Math.floor(100000 + Math.random() * 900000)}</strong>. Our White Glove logistics desk will contact you shortly.
+                Thank you for choosing The Ochre Lifestyle. Your trackable order reference code is <strong className="text-[#C17D3C] font-mono font-bold">{placedOrderId || 'OCHRE-8921'}</strong>. You can track its live artisan crafting journey in the Track Order window.
               </p>
             </div>
           ) : cart.length === 0 ? (
@@ -151,21 +244,24 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
 
                   <div className="flex items-center justify-between pt-1">
                     <span className="font-bold text-xs text-[#C17D3C]">
-                      {formatINR(item.product.priceINR * item.quantity)}
+                      {formatINR(item.product.priceINR * clampNumber(item.quantity, 1, 20, 1))}
                     </span>
 
-                    {/* Quantity controls */}
+                    {/* Quantity controls with min/max safety limits */}
                     <div className="flex items-center gap-2 border border-[#E6DDD0] bg-white rounded-md px-2 py-0.5 text-xs">
                       <button
                         onClick={() => onUpdateQuantity(idx, -1)}
-                        className="hover:text-[#C17D3C] font-bold"
+                        className="hover:text-[#C17D3C] font-bold disabled:opacity-40"
+                        disabled={item.quantity <= 1}
                       >
                         -
                       </button>
-                      <span>{item.quantity}</span>
+                      <span>{clampNumber(item.quantity, 1, 20, 1)}</span>
                       <button
                         onClick={() => onUpdateQuantity(idx, 1)}
-                        className="hover:text-[#C17D3C] font-bold"
+                        className="hover:text-[#C17D3C] font-bold disabled:opacity-40"
+                        disabled={item.quantity >= 20}
+                        title={item.quantity >= 20 ? 'Maximum 20 items per order' : undefined}
                       >
                         +
                       </button>
@@ -189,21 +285,29 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
         {cart.length > 0 && !checkoutSuccess && (
           <div className="p-5 bg-[#FAF6F0] border-t border-[#E6DDD0] space-y-3 text-xs">
             {/* Coupon Box */}
-            <form onSubmit={handleApplyCoupon} className="flex gap-2">
-              <input
-                type="text"
-                value={coupon}
-                onChange={(e) => setCoupon(e.target.value)}
-                placeholder="Coupon Code"
-                className="flex-1 px-3 py-1.5 bg-white border border-[#E6DDD0] rounded-lg focus:outline-none focus:border-[#C17D3C] text-xs uppercase tracking-wider"
-              />
-              <button
-                type="submit"
-                className="px-3 py-1.5 bg-[#2B2220] text-white rounded-lg font-semibold hover:bg-[#C17D3C] transition-colors cursor-pointer"
-              >
-                Apply
-              </button>
-            </form>
+            <div className="space-y-1">
+              <form onSubmit={handleApplyCoupon} className="flex gap-2">
+                <input
+                  type="text"
+                  maxLength={20}
+                  value={coupon}
+                  onChange={(e) => setCoupon(sanitizeCouponCode(e.target.value, 20))}
+                  placeholder="Coupon Code"
+                  className="flex-1 px-3 py-1.5 bg-white border border-[#E6DDD0] rounded-lg focus:outline-none focus:border-[#C17D3C] text-xs uppercase tracking-wider font-mono"
+                />
+                <button
+                  type="submit"
+                  className="px-3 py-1.5 bg-[#2B2220] text-white rounded-lg font-semibold hover:bg-[#C17D3C] transition-colors cursor-pointer"
+                >
+                  Apply
+                </button>
+              </form>
+              {couponFeedback && (
+                <p className={`text-[11px] ${couponFeedback.isError ? 'text-rose-600' : 'text-emerald-700 font-medium'}`}>
+                  {couponFeedback.msg}
+                </p>
+              )}
+            </div>
 
             <div className="space-y-1.5 text-[#6B5B54]">
               <div className="flex justify-between">
@@ -213,7 +317,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
 
               {discountAmount > 0 && (
                 <div className="flex justify-between text-[#C17D3C]">
-                  <span>Member Discount (10%):</span>
+                  <span>Member Discount:</span>
                   <span className="font-semibold">-{formatINR(discountAmount)}</span>
                 </div>
               )}
