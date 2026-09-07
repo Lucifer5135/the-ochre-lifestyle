@@ -3,11 +3,14 @@ import { X, Sparkles, Calendar, Clock, MapPin, Check, PhoneCall, AlertCircle } f
 import { StylistAppointment } from '../types';
 import { sanitizeText, sanitizePhone, rateLimiter } from '../lib/security';
 import { atelierStore } from '../lib/store';
+import { useBodyScrollLock } from '../lib/useBodyScrollLock';
 
 export const StylistBookingModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
   isOpen,
   onClose,
 }) => {
+  useBodyScrollLock(isOpen);
+
   if (!isOpen) return null;
 
   const [formData, setFormData] = useState<StylistAppointment>({
@@ -82,13 +85,13 @@ export const StylistBookingModal: React.FC<{ isOpen: boolean; onClose: () => voi
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs overscroll-contain overflow-y-auto animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-xs overscroll-contain animate-in fade-in duration-200"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
       <div
-        className="relative w-full max-w-xl bg-white rounded-2xl border border-[#E6DDD0] shadow-2xl overflow-y-auto max-h-[90vh] my-auto p-6 sm:p-8 space-y-6 overscroll-contain"
+        className="relative w-full max-w-xl bg-white rounded-2xl border border-[#E6DDD0] shadow-2xl overflow-y-auto max-h-[92vh] sm:max-h-[90vh] my-auto p-4 sm:p-8 space-y-4 sm:space-y-6 overscroll-contain touch-pan-y"
         onClick={(e) => e.stopPropagation()}
       >
         <button

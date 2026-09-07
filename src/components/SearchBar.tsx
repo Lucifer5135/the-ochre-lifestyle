@@ -3,6 +3,7 @@ import { Search, X, Eye, ArrowRight } from 'lucide-react';
 import { Product } from '../types';
 import { PRODUCTS } from '../data/products';
 import { sanitizeSearchQuery } from '../lib/security';
+import { useBodyScrollLock } from '../lib/useBodyScrollLock';
 
 interface SearchBarProps {
   isOpen: boolean;
@@ -11,6 +12,8 @@ interface SearchBarProps {
 }
 
 export const SearchBar: React.FC<SearchBarProps> = ({ isOpen, onClose, onSelectProduct }) => {
+  useBodyScrollLock(isOpen);
+
   if (!isOpen) return null;
 
   const [query, setQuery] = useState('');
@@ -37,13 +40,13 @@ export const SearchBar: React.FC<SearchBarProps> = ({ isOpen, onClose, onSelectP
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center pt-20 px-4 bg-black/60 backdrop-blur-xs overscroll-contain animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-start justify-center pt-12 sm:pt-20 px-3 sm:px-4 bg-black/60 backdrop-blur-xs overscroll-contain animate-in fade-in duration-200"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
       <div
-        className="relative w-full max-w-2xl bg-white rounded-2xl border border-[#E6DDD0] shadow-2xl overflow-hidden p-4 space-y-4 overscroll-contain"
+        className="relative w-full max-w-2xl bg-white rounded-2xl border border-[#E6DDD0] shadow-2xl overflow-hidden p-3.5 sm:p-4 space-y-3 sm:space-y-4 max-h-[85vh] flex flex-col overscroll-contain"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Search Input Bar */}

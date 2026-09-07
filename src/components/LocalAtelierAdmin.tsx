@@ -43,6 +43,7 @@ import { Product, OrderTrackInfo, CustomFurnitureRequest, StylistBookingRecord, 
 import { atelierStore } from '../lib/store';
 import { sanitizeText, sanitizeNumber, sanitizePhone, clampNumber } from '../lib/security';
 import { WOOD_FINISHES, FABRIC_SWATCHES } from '../data/swatches';
+import emblemImg from '../assets/images/ochre_lifestyle_emblem.png';
 import { SalesAnalyticsView } from './admin/SalesAnalyticsView';
 import { RevenueFinancialsView } from './admin/RevenueFinancialsView';
 import { PcAppDownloadModal } from './admin/PcAppDownloadModal';
@@ -297,8 +298,8 @@ export const LocalAtelierAdmin: React.FC<LocalAtelierAdminProps> = ({
       <div className="fixed inset-0 z-50 bg-[#1F1716] flex items-center justify-center p-4">
         <div className="max-w-md w-full bg-[#2B2220] border border-[#423430] rounded-3xl p-8 shadow-2xl text-white space-y-6">
           <div className="flex items-center justify-center">
-            <div className="w-16 h-16 rounded-2xl bg-[#C17D3C]/20 border border-[#C17D3C]/40 flex items-center justify-center text-[#C17D3C]">
-              <Lock size={32} />
+            <div className="w-16 h-16 rounded-full overflow-hidden bg-[#FAF6F0] p-1 ring-2 ring-[#C17D3C]/50 shadow-md flex items-center justify-center">
+              <img src={emblemImg} alt="The Ochre Lifestyle" className="w-full h-full object-contain" />
             </div>
           </div>
 
@@ -402,8 +403,8 @@ export const LocalAtelierAdmin: React.FC<LocalAtelierAdminProps> = ({
       <header className="sticky top-0 z-40 bg-[#2B2220] border-b border-[#423430] px-4 sm:px-6 py-3">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-[#C17D3C] flex items-center justify-center text-white font-bold font-serif-brand">
-              O
+            <div className="w-10 h-10 rounded-full overflow-hidden bg-[#FAF6F0] p-1 ring-1 ring-[#C17D3C]/50 shadow-xs flex items-center justify-center shrink-0">
+              <img src={emblemImg} alt="The Ochre Lifestyle" className="w-full h-full object-contain" />
             </div>
             <div>
               <div className="flex items-center gap-2">

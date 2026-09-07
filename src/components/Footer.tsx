@@ -228,7 +228,22 @@ export const Footer: React.FC<{
       {/* Bottom Bar */}
       <div className="border-t border-[#3A2E2B] py-6 bg-[#211918]">
         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between text-[11px] text-[#9E8E87] gap-4">
-          <div>
+          <div
+            onClick={() => {
+              if (!onOpenAdmin) return;
+              // Discreet triple-click trigger for owner (completely hidden from regular visitors)
+              const now = Date.now();
+              const lastClicks = (window as any).__ochreClicks || [];
+              const recentClicks = [...lastClicks.filter((t: number) => now - t < 1500), now];
+              (window as any).__ochreClicks = recentClicks;
+              if (recentClicks.length >= 3) {
+                (window as any).__ochreClicks = [];
+                onOpenAdmin();
+              }
+            }}
+            className="select-none"
+            title=""
+          >
             &copy; {new Date().getFullYear()} The Ochre Lifestyle Private Limited. All rights reserved. Prices inclusive of GST.
           </div>
           <div className="flex flex-wrap items-center gap-6">
@@ -248,17 +263,6 @@ export const Footer: React.FC<{
             <button onClick={onOpenTermsOfService || onOpenTerms} className="hover:text-white cursor-pointer">
               Terms of Service
             </button>
-            {/* Atelier OS & Analytics Portal Trigger */}
-            {onOpenAdmin && (
-              <button 
-                onClick={onOpenAdmin} 
-                className="text-[11px] text-[#9E8E87] hover:text-[#C17D3C] transition-colors flex items-center gap-1 cursor-pointer bg-[#2B2220] hover:bg-[#3A2E2B] px-2.5 py-1 rounded-md border border-[#3A2E2B]"
-                title="Open Atelier OS Admin & Analytics (Passkey: 8921)"
-                aria-label="Atelier Desktop App & Analytics"
-              >
-                <span>⚙️ Atelier OS / Analytics</span>
-              </button>
-            )}
           </div>
         </div>
       </div>

@@ -36,7 +36,13 @@ export default function App() {
   >(() => {
     try {
       const searchParams = new URLSearchParams(window.location.search);
-      if (searchParams.get('admin') === 'true' || searchParams.get('tab') === 'admin' || window.location.hash.toLowerCase().includes('admin')) {
+      if (
+        searchParams.get('admin') === 'true' ||
+        searchParams.get('admin') === '1' ||
+        searchParams.get('tab') === 'admin' ||
+        searchParams.get('app') === 'atelier-desktop' ||
+        window.location.hash.toLowerCase().includes('admin')
+      ) {
         return 'admin';
       }
       const hash = window.location.hash.replace('#', '').toLowerCase();
@@ -54,7 +60,13 @@ export default function App() {
     const handleUrlChange = () => {
       try {
         const searchParams = new URLSearchParams(window.location.search);
-        if (searchParams.get('admin') === 'true' || searchParams.get('tab') === 'admin' || window.location.hash.toLowerCase().includes('admin')) {
+        if (
+          searchParams.get('admin') === 'true' ||
+          searchParams.get('admin') === '1' ||
+          searchParams.get('tab') === 'admin' ||
+          searchParams.get('app') === 'atelier-desktop' ||
+          window.location.hash.toLowerCase().includes('admin')
+        ) {
           setActiveTab('admin');
         }
       } catch {

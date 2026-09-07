@@ -1,5 +1,6 @@
 import React from 'react';
-import logoImg from '../assets/images/ochre_lifestyle_logo_1784805965493.jpg';
+import emblemImg from '../assets/images/ochre_lifestyle_emblem.png';
+import fullLogoImg from '../assets/images/ochre_lifestyle_logo_full.png';
 
 interface BrandLogoProps {
   className?: string;
@@ -49,7 +50,7 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
     return (
       <div className={`flex flex-col items-center justify-center ${className}`}>
         <img
-          src={logoImg}
+          src={fullLogoImg}
           alt="The Ochre Lifestyle"
           referrerPolicy="no-referrer"
           className={`${fullImageSizes[size]} object-contain ${isDark ? 'brightness-110 contrast-125' : 'mix-blend-multiply'}`}
@@ -62,12 +63,12 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
     <div className={`flex flex-col items-center justify-center ${className}`}>
       <div className="flex items-center gap-2.5 sm:gap-3">
         {/* Monogram Symbol matching logo image */}
-        <div className={`relative flex items-center justify-center shrink-0 rounded-full overflow-hidden ${iconSizes[size]} ring-1 ring-[#C17D3C]/40 shadow-xs bg-[#FAF6F0]`}>
+        <div className={`relative flex items-center justify-center shrink-0 rounded-full overflow-hidden ${iconSizes[size]} ring-1 ring-[#C17D3C]/50 shadow-xs bg-[#FAF6F0]`}>
           <img
-            src={logoImg}
+            src={emblemImg}
             alt="The Ochre Lifestyle Symbol"
             referrerPolicy="no-referrer"
-            className="w-full h-full object-cover scale-110"
+            className="w-full h-full object-contain p-0.5"
           />
         </div>
 

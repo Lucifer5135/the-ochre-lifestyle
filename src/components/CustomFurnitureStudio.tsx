@@ -144,7 +144,7 @@ export const CustomFurnitureStudio: React.FC<CustomFurnitureStudioProps> = ({
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-12 animate-in fade-in duration-300">
       {/* Hero Header */}
-      <div className="bg-[#2B2220] text-[#FAF6F0] rounded-3xl p-8 sm:p-12 lg:p-16 border border-[#423430] relative overflow-hidden space-y-6">
+      <div className="bg-[#2B2220] text-[#FAF6F0] rounded-3xl p-5 sm:p-12 lg:p-16 border border-[#423430] relative overflow-hidden space-y-6">
         <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#C17D3C]/20 border border-[#C17D3C]/40 text-[#C17D3C] text-xs font-bold uppercase tracking-widest">
           <Sparkles size={14} />
           <span>Bespoke Artisan Studio</span>
@@ -228,7 +228,7 @@ export const CustomFurnitureStudio: React.FC<CustomFurnitureStudioProps> = ({
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           {/* Left Form Column */}
-          <div className="lg:col-span-8 bg-white rounded-2xl p-6 sm:p-8 border border-[#E6DDD0] shadow-sm space-y-8">
+          <div className="lg:col-span-8 bg-white rounded-2xl p-4 sm:p-8 border border-[#E6DDD0] shadow-sm space-y-6 sm:space-y-8">
             <h3 className="font-serif-brand text-2xl font-medium text-[#2B2220]">
               1. Select Furniture Blueprint
             </h3>
@@ -436,7 +436,7 @@ export const CustomFurnitureStudio: React.FC<CustomFurnitureStudioProps> = ({
 
           {/* Right Live Estimate & Contact Form Column */}
           <div className="lg:col-span-4 space-y-6">
-            <div className="bg-[#2B2220] text-[#FAF6F0] rounded-2xl p-6 border border-[#423430] shadow-lg space-y-6 sticky top-24">
+            <div className="bg-[#2B2220] text-[#FAF6F0] rounded-2xl p-4 sm:p-6 border border-[#423430] shadow-lg space-y-6 lg:sticky lg:top-24">
               <div className="border-b border-white/10 pb-4">
                 <span className="text-[10px] font-bold uppercase tracking-widest text-[#C17D3C] block">
                   Estimated Custom Investment

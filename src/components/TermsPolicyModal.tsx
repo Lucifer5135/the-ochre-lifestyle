@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, ShieldCheck, FileText, Lock, Truck, Cookie, Check } from 'lucide-react';
+import { useBodyScrollLock } from '../lib/useBodyScrollLock';
 
 interface TermsPolicyModalProps {
   isOpen: boolean;
@@ -12,6 +13,8 @@ export const TermsPolicyModal: React.FC<TermsPolicyModalProps> = ({
   onClose,
   defaultTab = 'solid-wood',
 }) => {
+  useBodyScrollLock(isOpen);
+
   if (!isOpen) return null;
 
   const [activeTab, setActiveTab] = useState<'solid-wood' | 'terms' | 'privacy' | 'shipping' | 'cookies'>(
@@ -20,26 +23,26 @@ export const TermsPolicyModal: React.FC<TermsPolicyModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-xs overscroll-contain overflow-y-auto animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-6 bg-black/60 backdrop-blur-xs overscroll-contain animate-in fade-in duration-200"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
       <div
-        className="relative w-full max-w-4xl bg-white rounded-2xl border border-[#E6DDD0] shadow-2xl overflow-hidden my-auto p-6 sm:p-8 space-y-6 max-h-[88vh] flex flex-col overscroll-contain"
+        className="relative w-full max-w-4xl bg-white rounded-2xl border border-[#E6DDD0] shadow-2xl overflow-hidden my-auto p-4 sm:p-8 space-y-4 sm:space-y-6 max-h-[92vh] sm:max-h-[88vh] flex flex-col overscroll-contain"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-2 bg-[#FAF6F0] hover:bg-[#2B2220] hover:text-white rounded-full transition-colors text-[#2B2220] cursor-pointer"
+          className="absolute top-3 right-3 sm:top-4 sm:right-4 p-2 bg-[#FAF6F0] hover:bg-[#2B2220] hover:text-white rounded-full transition-colors text-[#2B2220] cursor-pointer"
         >
           <X size={20} />
         </button>
 
         {/* Modal Header */}
-        <div className="border-b border-[#E6DDD0] pb-4">
-          <h3 className="font-serif-brand font-medium text-2xl text-[#2B2220]">
+        <div className="border-b border-[#E6DDD0] pb-3 sm:pb-4 pr-10">
+          <h3 className="font-serif-brand font-medium text-xl sm:text-2xl text-[#2B2220]">
             The Ochre Lifestyle Guidelines & Policies
           </h3>
           <p className="text-xs text-[#6B5B54]">
@@ -48,7 +51,7 @@ export const TermsPolicyModal: React.FC<TermsPolicyModalProps> = ({
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex flex-wrap gap-2 border-b border-[#E6DDD0] pb-3 text-xs font-semibold">
+        <div className="flex gap-2 border-b border-[#E6DDD0] pb-2 sm:pb-3 text-xs font-semibold overflow-x-auto scrollbar-none shrink-0">
           {[
             { id: 'solid-wood', label: '100% Solid Timber Guarantee', icon: ShieldCheck },
             { id: 'terms', label: 'Terms & Conditions', icon: FileText },
@@ -75,7 +78,7 @@ export const TermsPolicyModal: React.FC<TermsPolicyModalProps> = ({
         </div>
 
         {/* Tab Content Body */}
-        <div className="flex-1 overflow-y-auto space-y-6 text-xs text-[#2B2220] leading-relaxed pr-2">
+        <div className="flex-1 overflow-y-auto overscroll-contain touch-pan-y space-y-6 text-xs text-[#2B2220] leading-relaxed pr-1 sm:pr-2">
           {/* TAB 1: SOLID WOOD GUARANTEE */}
           {activeTab === 'solid-wood' && (
             <div className="space-y-4">

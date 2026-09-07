@@ -92,17 +92,6 @@ export const Navbar: React.FC<NavbarProps> = ({
           >
             <span>Guarantee & Terms</span>
           </button>
-          {onOpenAdmin && (
-            <>
-              <span>&bull;</span>
-              <button
-                onClick={onOpenAdmin}
-                className="text-[#C17D3C] hover:text-white font-bold transition-colors flex items-center gap-1 cursor-pointer"
-              >
-                <span>⚙️ Atelier OS & Analytics</span>
-              </button>
-            </>
-          )}
         </div>
       </div>
 
@@ -410,18 +399,6 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               Book Complimentary Interior Stylist
             </button>
-
-            {onOpenAdmin && (
-              <button
-                onClick={() => {
-                  onOpenAdmin();
-                  setMobileMenuOpen(false);
-                }}
-                className="w-full mt-2 bg-[#1F1716] border border-[#C17D3C]/40 text-[#C17D3C] p-2.5 rounded-lg text-xs font-bold uppercase tracking-wider text-center flex items-center justify-center gap-2"
-              >
-                <span>Artisan Atelier Console (Owner)</span>
-              </button>
-            )}
           </div>
         </div>
       )}

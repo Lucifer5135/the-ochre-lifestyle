@@ -3,6 +3,7 @@ import { X, Search, Truck, Clock, ShieldCheck, MapPin, CheckCircle2, ChevronRigh
 import { OrderTrackInfo } from '../types';
 import { sanitizeOrderCode, sanitizeText, rateLimiter } from '../lib/security';
 import { atelierStore } from '../lib/store';
+import { useBodyScrollLock } from '../lib/useBodyScrollLock';
 
 interface OrderTrackingModalProps {
   isOpen: boolean;
@@ -10,6 +11,8 @@ interface OrderTrackingModalProps {
 }
 
 export const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({ isOpen, onClose }) => {
+  useBodyScrollLock(isOpen);
+
   if (!isOpen) return null;
 
   const [ordersMap, setOrdersMap] = useState<Record<string, OrderTrackInfo>>(() => atelierStore.getOrders());
@@ -60,13 +63,13 @@ export const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({ isOpen, 
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-xs overscroll-contain overflow-y-auto animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-6 bg-black/60 backdrop-blur-xs overscroll-contain animate-in fade-in duration-200"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
       <div
-        className="relative w-full max-w-4xl bg-white rounded-2xl border border-[#E6DDD0] shadow-2xl overflow-y-auto max-h-[90vh] my-auto p-6 sm:p-8 space-y-6 overscroll-contain"
+        className="relative w-full max-w-4xl bg-white rounded-2xl border border-[#E6DDD0] shadow-2xl overflow-y-auto max-h-[92vh] sm:max-h-[90vh] my-auto p-4 sm:p-8 space-y-4 sm:space-y-6 overscroll-contain touch-pan-y"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header & Close */}

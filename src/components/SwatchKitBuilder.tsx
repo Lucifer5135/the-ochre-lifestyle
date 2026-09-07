@@ -112,20 +112,20 @@ export const SwatchKitBuilder: React.FC = () => {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 bg-white border border-[#E6DDD0] rounded-2xl p-6 sm:p-8 shadow-xl">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 bg-white border border-[#E6DDD0] rounded-2xl p-4 sm:p-8 shadow-xl">
         {/* Left: Swatch Selector */}
         <div className="lg:col-span-7 space-y-6">
           <div className="flex items-center justify-between border-b border-[#E6DDD0] pb-3">
-            <h3 className="font-serif-brand font-medium text-lg text-[#2B2220]">
+            <h3 className="font-serif-brand font-medium text-base sm:text-lg text-[#2B2220]">
               Select Up to 5 Swatches ({selectedSwatches.length}/5 Selected)
             </h3>
             <span className="text-xs text-[#C17D3C] font-semibold">
-              Free Delivery & Zero Fees
+              Free Delivery
             </span>
           </div>
 
           {/* Swatches Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
             {ALL_SWATCHES.map((swatch) => {
               const isSelected = selectedSwatches.some((s) => s.id === swatch.id);
               return (
@@ -169,7 +169,7 @@ export const SwatchKitBuilder: React.FC = () => {
         </div>
 
         {/* Right: Shipping Address Form or Confirmation */}
-        <div className="lg:col-span-5 bg-[#FAF6F0] p-6 rounded-xl border border-[#E6DDD0] space-y-6">
+        <div className="lg:col-span-5 bg-[#FAF6F0] p-4 sm:p-6 rounded-xl border border-[#E6DDD0] space-y-4 sm:space-y-6">
           {orderedSuccess ? (
             <div className="text-center space-y-4 py-8">
               <div className="w-16 h-16 bg-[#C17D3C] text-white rounded-full flex items-center justify-center mx-auto shadow-lg">

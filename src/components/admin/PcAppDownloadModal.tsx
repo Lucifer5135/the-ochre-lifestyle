@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import emblemImg from '../../assets/images/ochre_lifestyle_emblem.png';
 import {
   Monitor,
   Download,
@@ -71,9 +72,17 @@ export const PcAppDownloadModal: React.FC<PcAppDownloadModalProps> = ({ onClose 
       {/* Top Banner */}
       <div className="bg-gradient-to-r from-[#231B1A] via-[#2B2220] to-[#1C1615] p-6 sm:p-8 rounded-2xl border border-[#C17D3C]/40 relative overflow-hidden">
         <div className="relative z-10 max-w-3xl">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#C17D3C]/20 border border-[#C17D3C]/40 text-[#C17D3C] text-xs font-semibold uppercase tracking-wider mb-4">
-            <Laptop size={14} />
-            <span>Standalone Executive PC Software Edition</span>
+          <div className="flex items-center gap-4 mb-4">
+            <div className="w-14 h-14 rounded-2xl overflow-hidden bg-[#FAF6F0] p-1.5 ring-2 ring-[#C17D3C]/60 shadow-lg shrink-0 flex items-center justify-center">
+              <img src={emblemImg} alt="The Ochre Lifestyle Emblem" className="w-full h-full object-contain" />
+            </div>
+            <div>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#C17D3C]/20 border border-[#C17D3C]/40 text-[#C17D3C] text-xs font-semibold uppercase tracking-wider mb-1">
+                <Laptop size={14} />
+                <span>Standalone Executive PC Software Edition</span>
+              </div>
+              <div className="text-xs text-[#D8CEBD] font-medium">The Ochre Lifestyle Atelier OS</div>
+            </div>
           </div>
 
           <h2 className="text-2xl sm:text-3xl font-serif text-[#FAF6F0] font-bold">

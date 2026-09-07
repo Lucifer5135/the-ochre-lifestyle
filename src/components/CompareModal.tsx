@@ -1,6 +1,7 @@
 import React from 'react';
 import { X, Layers, Check, ShoppingBag, Trash2 } from 'lucide-react';
 import { Product } from '../types';
+import { useBodyScrollLock } from '../lib/useBodyScrollLock';
 
 interface CompareModalProps {
   isOpen: boolean;
@@ -17,6 +18,8 @@ export const CompareModal: React.FC<CompareModalProps> = ({
   onRemoveCompare,
   onAddToCart,
 }) => {
+  useBodyScrollLock(isOpen);
+
   if (!isOpen) return null;
 
   const formatINR = (amount: number) => {
@@ -29,13 +32,13 @@ export const CompareModal: React.FC<CompareModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-xs overscroll-contain overflow-y-auto animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-6 bg-black/60 backdrop-blur-xs overscroll-contain animate-in fade-in duration-200"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
       <div
-        className="relative w-full max-w-5xl bg-white rounded-2xl border border-[#E6DDD0] shadow-2xl overflow-y-auto max-h-[90vh] my-auto p-6 sm:p-8 space-y-6 overscroll-contain"
+        className="relative w-full max-w-5xl bg-white rounded-2xl border border-[#E6DDD0] shadow-2xl overflow-y-auto max-h-[92vh] sm:max-h-[90vh] my-auto p-4 sm:p-8 space-y-4 sm:space-y-6 overscroll-contain touch-pan-y"
         onClick={(e) => e.stopPropagation()}
       >
         <button

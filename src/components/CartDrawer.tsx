@@ -4,6 +4,7 @@ import { CartItem } from '../types';
 import { sanitizeCouponCode, clampNumber, rateLimiter } from '../lib/security';
 import { atelierStore } from '../lib/store';
 import { OrderTrackInfo } from '../types';
+import { useBodyScrollLock } from '../lib/useBodyScrollLock';
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -24,6 +25,8 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   onClearCart,
   onOpenStylist,
 }) => {
+  useBodyScrollLock(isOpen);
+
   if (!isOpen) return null;
 
   const [coupon, setCoupon] = useState('OCHRE10');
@@ -173,7 +176,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
         </div>
 
         {/* Cart Items List */}
-        <div className="flex-1 overflow-y-auto overscroll-contain p-5 space-y-4">
+        <div className="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-5 space-y-4 touch-pan-y">
           {checkoutSuccess ? (
             <div className="text-center space-y-4 py-16">
               <div className="w-16 h-16 bg-[#C17D3C] text-white rounded-full flex items-center justify-center mx-auto shadow-lg animate-bounce">

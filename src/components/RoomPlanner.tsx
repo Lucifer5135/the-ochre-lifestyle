@@ -149,27 +149,30 @@ export const RoomPlanner: React.FC<RoomPlannerProps> = ({ onAddMultipleToCart })
       {/* Main Grid & Control Canvas Area */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 bg-white border border-[#E6DDD0] rounded-2xl p-4 sm:p-6 shadow-xl">
         {/* Left: Product Selector Library */}
-        <div className="lg:col-span-3 border-r border-[#E6DDD0] pr-0 lg:pr-6 space-y-4">
-          <div className="font-bold text-xs uppercase tracking-wider text-[#2B2220] flex items-center gap-2">
-            <Layers size={16} className="text-[#C17D3C]" />
-            <span>Furniture Library</span>
+        <div className="lg:col-span-3 border-b lg:border-b-0 lg:border-r border-[#E6DDD0] pb-4 lg:pb-0 pr-0 lg:pr-6 space-y-4">
+          <div className="font-bold text-xs uppercase tracking-wider text-[#2B2220] flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Layers size={16} className="text-[#C17D3C]" />
+              <span>Furniture Library</span>
+            </div>
+            <span className="text-[10px] text-[#6B5B54] font-normal">Tap + to add</span>
           </div>
 
-          <div className="space-y-3 max-h-[500px] overflow-y-auto pr-1">
+          <div className="space-y-3 max-h-[220px] lg:max-h-[500px] overflow-y-auto overscroll-contain touch-pan-y pr-1">
             {PRODUCTS.map((product) => (
               <div
                 key={product.id}
-                className="p-3 bg-[#FAF6F0] border border-[#E6DDD0] rounded-xl flex items-center justify-between gap-2 hover:border-[#C17D3C] transition-all"
+                className="p-2.5 sm:p-3 bg-[#FAF6F0] border border-[#E6DDD0] rounded-xl flex items-center justify-between gap-2 hover:border-[#C17D3C] transition-all"
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
                   <img
                     src={product.image}
                     alt={product.name}
                     referrerPolicy="no-referrer"
-                    className="w-12 h-12 rounded-lg object-cover bg-white"
+                    className="w-11 h-11 sm:w-12 sm:h-12 rounded-lg object-cover bg-white shrink-0"
                   />
-                  <div>
-                    <h4 className="font-serif-brand font-medium text-xs text-[#2B2220] line-clamp-1">
+                  <div className="min-w-0">
+                    <h4 className="font-serif-brand font-medium text-xs text-[#2B2220] truncate">
                       {product.name}
                     </h4>
                     <p className="text-[11px] font-bold text-[#C17D3C]">
@@ -180,7 +183,7 @@ export const RoomPlanner: React.FC<RoomPlannerProps> = ({ onAddMultipleToCart })
 
                 <button
                   onClick={() => handleAddItemToRoom(product)}
-                  className="p-2 bg-[#2B2220] hover:bg-[#C17D3C] text-white rounded-lg transition-colors cursor-pointer"
+                  className="p-2 bg-[#2B2220] hover:bg-[#C17D3C] text-white rounded-lg transition-colors cursor-pointer shrink-0 active:scale-95"
                   title="Place in Room"
                 >
                   <Plus size={16} />
@@ -191,18 +194,18 @@ export const RoomPlanner: React.FC<RoomPlannerProps> = ({ onAddMultipleToCart })
         </div>
 
         {/* Center: Interactive 2D Floor Plan Grid */}
-        <div className="lg:col-span-6 flex flex-col items-center justify-center p-4 bg-[#FAF6F0] rounded-xl border border-[#E6DDD0] relative min-h-[420px]">
+        <div className="lg:col-span-6 flex flex-col items-center justify-center p-3 sm:p-4 bg-[#FAF6F0] rounded-xl border border-[#E6DDD0] relative min-h-[360px] sm:min-h-[420px]">
           {/* Room Dimensions Banner */}
-          <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-xs px-3 py-1.5 rounded-lg border border-[#E6DDD0] text-[11px] font-semibold text-[#2B2220] flex items-center gap-1.5">
-            <Ruler size={14} className="text-[#C17D3C]" />
+          <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-xs px-2.5 py-1 rounded-lg border border-[#E6DDD0] text-[10px] sm:text-[11px] font-semibold text-[#2B2220] flex items-center gap-1.5 z-10">
+            <Ruler size={13} className="text-[#C17D3C]" />
             <span>
-              Canvas: {selectedPreset.dimensionsMeter.width}m x {selectedPreset.dimensionsMeter.length}m Scale
+              {selectedPreset.dimensionsMeter.width}m &times; {selectedPreset.dimensionsMeter.length}m Room
             </span>
           </div>
 
           {/* Grid Canvas */}
           <div
-            className="w-full max-w-[460px] aspect-square bg-white border-2 border-dashed border-[#C17D3C]/40 rounded-xl relative shadow-inner p-2 grid gap-1"
+            className="w-full max-w-[440px] aspect-square bg-white border-2 border-dashed border-[#C17D3C]/40 rounded-xl relative shadow-inner p-2 grid gap-1 mt-6 sm:mt-0 select-none touch-none"
             style={{
               gridTemplateColumns: `repeat(${selectedPreset.gridSize.cols}, 1fr)`,
               gridTemplateRows: `repeat(${selectedPreset.gridSize.rows}, 1fr)`,
@@ -225,7 +228,7 @@ export const RoomPlanner: React.FC<RoomPlannerProps> = ({ onAddMultipleToCart })
                     gridRowEnd: `span ${Math.min(2, selectedPreset.gridSize.rows - item.y)}`,
                     transform: `rotate(${item.rotation}deg)`,
                   }}
-                  className={`relative p-1.5 rounded-xl border-2 transition-all cursor-pointer flex flex-col items-center justify-center text-center bg-white shadow-sm hover:z-20 ${
+                  className={`relative p-1 rounded-xl border-2 transition-all cursor-pointer flex flex-col items-center justify-center text-center bg-white shadow-sm hover:z-20 ${
                     isSelected
                       ? 'border-[#C17D3C] bg-[#C17D3C]/10 ring-2 ring-[#C17D3C]/30 z-10'
                       : 'border-[#E6DDD0] hover:border-[#2B2220]'
@@ -235,9 +238,9 @@ export const RoomPlanner: React.FC<RoomPlannerProps> = ({ onAddMultipleToCart })
                     src={prod.image}
                     alt={prod.name}
                     referrerPolicy="no-referrer"
-                    className="w-10 h-10 object-cover rounded-md pointer-events-none"
+                    className="w-8 h-8 sm:w-10 sm:h-10 object-cover rounded-md pointer-events-none"
                   />
-                  <span className="text-[9px] font-bold text-[#2B2220] truncate w-full mt-0.5 pointer-events-none">
+                  <span className="text-[8px] sm:text-[9px] font-bold text-[#2B2220] truncate w-full mt-0.5 pointer-events-none">
                     {prod.name.split(' ')[0]}
                   </span>
                 </div>
@@ -247,37 +250,39 @@ export const RoomPlanner: React.FC<RoomPlannerProps> = ({ onAddMultipleToCart })
 
           {/* Controls Bar for Active Item */}
           {activePlacedItem && activeProduct && (
-            <div className="mt-4 p-3 bg-white rounded-xl border border-[#E6DDD0] w-full max-w-[460px] flex items-center justify-between text-xs">
-              <div className="flex items-center gap-2">
-                <span className="font-bold text-[#2B2220]">{activeProduct.name}</span>
+            <div className="mt-3 sm:mt-4 p-2.5 sm:p-3 bg-white rounded-xl border border-[#E6DDD0] w-full max-w-[440px] flex flex-wrap items-center justify-between gap-2 text-xs">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span className="font-bold text-[#2B2220] truncate max-w-[120px] sm:max-w-none text-[11px] sm:text-xs">
+                  {activeProduct.name}
+                </span>
               </div>
 
-              <div className="flex items-center gap-1.5">
-                {/* Movement buttons */}
+              <div className="flex items-center gap-1">
+                {/* Movement buttons with touch-friendly sizes */}
                 <button
                   onClick={() => handleMoveItem(activePlacedItem.id, -1, 0)}
-                  className="px-2 py-1 bg-[#FAF6F0] rounded font-mono hover:bg-[#E6DDD0]"
+                  className="w-8 h-8 sm:w-7 sm:h-7 bg-[#FAF6F0] rounded font-bold hover:bg-[#E6DDD0] active:scale-95 flex items-center justify-center text-xs text-[#2B2220]"
                   title="Move Left"
                 >
                   &larr;
                 </button>
                 <button
                   onClick={() => handleMoveItem(activePlacedItem.id, 1, 0)}
-                  className="px-2 py-1 bg-[#FAF6F0] rounded font-mono hover:bg-[#E6DDD0]"
+                  className="w-8 h-8 sm:w-7 sm:h-7 bg-[#FAF6F0] rounded font-bold hover:bg-[#E6DDD0] active:scale-95 flex items-center justify-center text-xs text-[#2B2220]"
                   title="Move Right"
                 >
                   &rarr;
                 </button>
                 <button
                   onClick={() => handleMoveItem(activePlacedItem.id, 0, -1)}
-                  className="px-2 py-1 bg-[#FAF6F0] rounded font-mono hover:bg-[#E6DDD0]"
+                  className="w-8 h-8 sm:w-7 sm:h-7 bg-[#FAF6F0] rounded font-bold hover:bg-[#E6DDD0] active:scale-95 flex items-center justify-center text-xs text-[#2B2220]"
                   title="Move Up"
                 >
                   &uarr;
                 </button>
                 <button
                   onClick={() => handleMoveItem(activePlacedItem.id, 0, 1)}
-                  className="px-2 py-1 bg-[#FAF6F0] rounded font-mono hover:bg-[#E6DDD0]"
+                  className="w-8 h-8 sm:w-7 sm:h-7 bg-[#FAF6F0] rounded font-bold hover:bg-[#E6DDD0] active:scale-95 flex items-center justify-center text-xs text-[#2B2220]"
                   title="Move Down"
                 >
                   &darr;
@@ -285,18 +290,18 @@ export const RoomPlanner: React.FC<RoomPlannerProps> = ({ onAddMultipleToCart })
 
                 <button
                   onClick={() => handleRotateItem(activePlacedItem.id)}
-                  className="p-1.5 bg-[#FAF6F0] hover:bg-[#C17D3C] hover:text-white rounded text-[#2B2220] transition-colors"
+                  className="w-8 h-8 sm:w-7 sm:h-7 bg-[#FAF6F0] hover:bg-[#C17D3C] hover:text-white rounded text-[#2B2220] transition-colors active:scale-95 flex items-center justify-center"
                   title="Rotate 90°"
                 >
-                  <RotateCw size={14} />
+                  <RotateCw size={13} />
                 </button>
 
                 <button
                   onClick={() => handleRemoveItem(activePlacedItem.id)}
-                  className="p-1.5 bg-rose-50 text-rose-700 hover:bg-rose-600 hover:text-white rounded transition-colors"
+                  className="w-8 h-8 sm:w-7 sm:h-7 bg-rose-50 text-rose-700 hover:bg-rose-600 hover:text-white rounded transition-colors active:scale-95 flex items-center justify-center"
                   title="Remove Item"
                 >
-                  <Trash2 size={14} />
+                  <Trash2 size={13} />
                 </button>
               </div>
             </div>
@@ -304,7 +309,7 @@ export const RoomPlanner: React.FC<RoomPlannerProps> = ({ onAddMultipleToCart })
         </div>
 
         {/* Right: Room Summary & Order Entire Room */}
-        <div className="lg:col-span-3 border-l border-[#E6DDD0] pl-0 lg:pl-6 flex flex-col justify-between space-y-6">
+        <div className="lg:col-span-3 border-t lg:border-t-0 lg:border-l border-[#E6DDD0] pt-4 lg:pt-0 pl-0 lg:pl-6 flex flex-col justify-between space-y-4 sm:space-y-6">
           <div className="space-y-4">
             <h3 className="font-serif-brand font-medium text-lg text-[#2B2220]">
               Staged Room Estimate
